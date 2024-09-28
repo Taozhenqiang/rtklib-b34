@@ -1,0 +1,29 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "cppdbg",
+            "request": "launch",
+            "name": "RTKNav",
+            "program": "${workspaceFolder}\\build\\Bin\\RTKNav.exe", //注意为可执行文件的完整路径+文件名
+            "args": [
+                "-k",
+                "spp.conf",
+                "E:\\GAMPII-GOOD\\dataset_Win\\obs\\2021\\351\\MGEX\\daily\\kiru3510.21o",
+                // "${workspaceFolder}\\data\\data_IGM-A1_Vehicle_open_20211217-nsh\\IGM-A1_rover.21o",
+                // "${workspaceFolder}\\data\\data_IGM-A1_Vehicle_open_20211217-nsh\\IGM-A1_base.21o",
+                "${workspaceFolder}\\data\\data_IGM-A1_Vehicle_open_20211217-nsh\\brdm3510.21p",
+                // "${workspaceFolder}\\data\\data_IGM-A1_Vehicle_open_20211217-nsh\\gbm21885.sp3",
+                // "${workspaceFolder}\\data\\data_IGM-A1_Vehicle_open_20211217-nsh\\gbm21885.clk",
+                "${workspaceFolder}\\data\\data_IGM-A1_Vehicle_open_20211217-nsh\\CAS0MGXRAP_20213510000_01D_01D_DCB.BSX",
+                // "${workspaceFolder}\\data\\data_IGM-A1_Vehicle_open_20211217-nsh\\CAS0MGXRAP_20213510000_01D_01D_OSB.BIA",
+                "-o",
+                "${workspaceFolder}\\result\\kir8_spp.pos"
+            ],
+            "cwd": "${workspaceFolder}\\conf" //配置文件路径
+        }
+    ]
+}

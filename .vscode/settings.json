@@ -1,0 +1,4 @@
+{
+    "cmake.cmakePath": "D:\\cmake-3.30.3-windows-x86_64\\bin\\cmake.exe", //设置cmake路径
+    "cmake.generator": "MinGW Makefiles" //设置CMake生成器
+}
