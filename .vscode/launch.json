@@ -23,7 +23,7 @@
                 "-o",
                 "${workspaceFolder}\\result\\kir8_spp.pos"
             ],
-            "cwd": "${workspaceFolder}\\conf" //配置文件路径
+            "cwd": "${workspaceFolder}\\conf" //配置文件
         }
     ]
 }
