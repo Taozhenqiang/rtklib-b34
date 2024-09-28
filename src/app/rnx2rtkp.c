@@ -16,6 +16,7 @@
 *           2015/05/15  1.8 -r or -l options for fixed or ppp-fixed mode
 *           2015/06/12  1.9 output patch level in header
 *           2016/09/07  1.10 add option -sys
+*           2024/09/28  modified by tzq
 *-----------------------------------------------------------------------------*/
 #include <stdarg.h>
 #include "rtklib.h"
