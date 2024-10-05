@@ -39,7 +39,7 @@ static double elmask_,elmaskar_,elmaskhold_;
 static double antpos_[2][3];
 static char exsats_[1024];
 static char snrmask_[NFREQ][1024];
-static char fre_[RNX_NUMSYS][MAXFREQ];
+static char fre_[RNX_NUMSYS][1024];
 
 /* system options table ------------------------------------------------------*/
 #define SWTOPT  "0:off,1:on"
@@ -92,6 +92,8 @@ EXPORT opt_t sysopts[]={
     {"pos1-posopt5",    3,  (void *)&prcopt_.posopt[4],  SWTOPT },
     {"pos1-posopt6",    3,  (void *)&prcopt_.posopt[5],  SWTOPT },
     {"pos1-exclsats",   2,  (void *)exsats_,             "prn ..."},
+    {"pos1-bds2",       3,  (void *)&prcopt_.bdsflag[0], SWTOPT },
+    {"pos1-bds3",       3,  (void *)&prcopt_.bdsflag[1], SWTOPT },
     {"pos1-navsys",     0,  (void *)&prcopt_.navsys,     NAVOPT },
     
     {"pos2-armode",     3,  (void *)&prcopt_.modear,     ARMOPT },
@@ -438,6 +440,26 @@ static void buff2sysopts(void)
     for (i=0;i<MAXSAT;i++) prcopt_.exsats[i]=0;
     if (exsats_[0]!='\0') {
         strcpy(buff,exsats_);
+        char *q;
+        for (p=strtok_r(buff," ",&q);p;p=strtok_r(NULL," ",&q)) {
+            if (*p=='+') id=p+1; else id=p;
+            if (!(sat=satid2no(id))) continue;
+            prcopt_.exsats[sat-1]=*p=='+'?2:1;
+        }
+    }
+    /*exclude BDS2*/
+    if(1==prcopt_.bdsflag[0]) {
+        strcpy(buff,BDS2);
+        char *q;
+        for (p=strtok_r(buff," ",&q);p;p=strtok_r(NULL," ",&q)) {
+            if (*p=='+') id=p+1; else id=p;
+            if (!(sat=satid2no(id))) continue;
+            prcopt_.exsats[sat-1]=*p=='+'?2:1;
+        }
+    }
+    /*exclude BDS3*/
+    if(1==prcopt_.bdsflag[1]) {
+        strcpy(buff,BDS3);
         char *q;
         for (p=strtok_r(buff," ",&q);p;p=strtok_r(NULL," ",&q)) {
             if (*p=='+') id=p+1; else id=p;

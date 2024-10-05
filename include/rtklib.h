@@ -56,7 +56,7 @@ extern "C"
 #define EXPORT
 #endif
 
-    /* constants -----------------------------------------------------------------*/
+/* constants -----------------------------------------------------------------*/
 
 #define VER_RTKLIB "demo5" /* library version */
 
@@ -64,6 +64,9 @@ extern "C"
 
 #define COPYRIGHT_RTKLIB \
     "Copyright (C) 2007-2020 T.Takasu\nAll rights reserved."
+
+#define BDS2 "C01 C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12 C13 C14 C16"
+#define BDS3 "C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 C32 C33 C34 C35 C36 C37 C38 C39 C40 C41 C42 C43 C44 C45 C46 C56 C57 C58 C59 C60 C61"
 
 #define PI 3.1415926535897932  /* pi */
 #define D2R (PI / 180.0)       /* deg to rad */
@@ -1050,7 +1053,8 @@ extern "C"
                                  GLONASS: 0-G1/G1a;1-G2/G2a;2-G3
                                  Galileo: 0-E1;1-E5b;2-E5a;3-E6;4-E5a+E5b;
                                  QZSS: 0-L1;1-L2;2-L5;3-LEX;
-                                 BeiDou: 0-B1I;1-B2I;2-B3I;3-B1C;4-B2a,5-B2b,6-B2ab*/       
+                                 BeiDou: 0-B1I;1-B2I;2-B3I;3-B1C;4-B2a,5-B2b,6-B2ab*/ 
+        int bdsflag[2];          /* exclude flag of BSD2 and BDS3 [0] BDS2 flag,[1] BSD3 flag*/      
         int navsys;              /* navigation system */
         double elmin;            /* elevation mask angle (rad) */
         snrmask_t snrmask;       /* SNR mask */
@@ -1425,6 +1429,9 @@ extern "C"
     EXPORT extern const sbsigpband_t igpband2[2][5]; /* SBAS IGP band 9-10 */
     EXPORT extern const char *formatstrs[];          /* stream format strings */
     EXPORT extern opt_t sysopts[];                   /* system options table */
+
+    /*Debug*/
+    EXPORT void DebugTime(gtime_t t,int t1, int t2);
 
     /* satellites, systems, codes functions --------------------------------------*/
     EXPORT int satno(int sys, int prn);

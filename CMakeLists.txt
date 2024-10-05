@@ -65,7 +65,7 @@ else()
 endif()
 
 include_directories(include) #添加包含路径
-add_definitions(-DWIN32 -DENAGLO -DENAGAL -DENACMP -DENAQZS -DNEXOBS=3 -DNFREQ=5)#添加预处理器定义，这些定义在编译时会被添加到源代码中的宏定义中
+add_definitions(-DWIN32 -DENAGLO -DENAGAL -DENACMP -DENAQZS -DNEXOBS=3 -DNFREQ=7)#添加预处理器定义，这些定义在编译时会被添加到源代码中的宏定义中
 
 # global value
 # set lib name

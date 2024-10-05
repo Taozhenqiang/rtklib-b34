@@ -204,16 +204,17 @@ const prcopt_t prcopt_default = {
     PMODE_KINEMA,
     SOLTYPE_FORWARD, /* mode,soltype */
     2,      /*nf*/
-    {{0,1,2},
-    {0,1,2},
-    {0,1,2},
-    {0,1,2},
-    {0,2,3,4}}, /* idx of frequencies
+    {{0,1,2,3,4,5,6},
+    {0,1,2,3,4,5,6},
+    {0,1,2,3,4,5,6},
+    {0,1,2,3,4,5,6},
+    {0,2,3,4,5,1,6}}, /* idx of frequencies
                 GPS: 0-L1;1-L2;2-L5
                 GLONASS: 0-G1/G1a;1-G2/G2a;2-G3
                 Galileo: 0-E1;1-E5b;2-E5a;3-E6;4-E5a+E5b;
                 QZSS: 0-L1;1-L2;2-L5;3-LEX;
-                BeiDou: 0-B1I;1-B2I;2-B3I;3-B1C;4-B2a,5-B2b,6-B2ab*/ 
+                BeiDou: 0-B1I;1-B2I;2-B3I;3-B1C;4-B2a,5-B2b,6-B2ab*/
+    {1,0}, 
     SYS_GPS | SYS_GLO | SYS_GAL, /* navsys */
     15.0 * D2R,
     {{0, 0}}, /* elmin,snrmask */
@@ -324,7 +325,7 @@ static char codepris[7][MAXFREQ][16] = {
     /* L1/E1/B1 L2/E5b/B2b L5/E5a/B2a E6/LEX/B3 E5(a+b)         */
     {"CPYWMNSLX", "CPYWMNDLSX", "IQX", "", "", ""},  /* GPS */
     {"CPABX", "CPABX", "IQX", "", "", ""},           /* GLO */
-    {"CABXZ", "XIQ", "XIQ", "ABCXZ", "IQX", ""},     /* GAL */
+    {"CABXZ", "IQX", "IQX", "ABCXZ", "IQX", ""},     /* GAL */
     {"CLSXZ", "LSX", "IQXDPZ", "LSXEZ", "", ""},     /* QZS */
     {"C", "IQX", "", "", "", ""},                    /* SBS */
     /* {"IQXDPAN", "IQXDPZ", "DPX", "IQXA", "DPX", ""}, */ /* BDS */
@@ -445,6 +446,23 @@ static void fatalerr(const char *format, ...)
 extern void add_fatal(fatalfunc_t *func)
 {
     fatalfunc = func;
+}
+/* pause of Debug -------------------------------------------------
+ * Pause at a specified timestamp
+ * args   : gtime_t    t    I   obs time
+ *          int        t1   I   target second
+ *          int        t2   I   target week
+ * return : none
+ * notes  : if malloc() failed in return : none
+ *-----------------------------------------------------------------------------*/
+extern void DebugTime(gtime_t t,int t1, int t2)
+{
+    int week,flag;
+    double sec;
+    sec=time2gpst(t,&week);
+    if ((int)floor(sec+0.5)==t1 && week==t2) {
+        flag=1;
+    }
 }
 /* satellite system+prn/slot number to satellite number ------------------------
  * convert satellite system+prn/slot number to satellite number
@@ -4704,7 +4722,7 @@ extern void antmodel(const pcv_t *pcv, const double *del, const double *azel,
                      int opt, double *dant)
 {
     double e[3], off[3], cosel = cos(azel[1]);
-    int i, j;
+    int i, j, fr;
 
     trace(4, "antmodel: azel=%6.1f %4.1f opt=%d\n", azel[0] * R2D, azel[1] * R2D, opt);
 

@@ -112,20 +112,20 @@ static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
                      double *var)
 {
     double P1,P2,gamma,b1,b2;
-    int sat,sys,f2,bias_ix[2],flag,fr[2];
+    int sat,sys,f2,bias_ix[2],flag,fr2[2];
 
     sat=obs->sat;
     sys=satsys(sat,NULL);
-    fr[0]=sys2freid(sys,0,opt);
-    fr[1]=sys2freid(sys,1,opt);
-    P1=obs->P[fr[0]];
+    fr2[0]=sys2freid(sys,0,opt);
+    fr2[1]=sys2freid(sys,1,opt);
+    P1=obs->P[fr2[0]];
     /* f2=seliflc(opt->nf,satsys(obs->sat,NULL)); */
-    P2=obs->P[fr[1]];
+    P2=obs->P[fr2[1]];
     *var=0.0;
     
     if (P1==0.0||(opt->ionoopt==IONOOPT_IFLC&&P2==0.0)) return 0.0;
-    bias_ix[0]=code2bias_ix(sys,obs->code[fr[0]]);  /* L1 code bias */
-    bias_ix[1]=code2bias_ix(sys,obs->code[fr[1]]);
+    bias_ix[0]=code2bias_ix(sys,obs->code[fr2[0]]);  /* L1 code bias */
+    bias_ix[1]=code2bias_ix(sys,obs->code[fr2[1]]);
     if (opt->sateph==EPHOPT_BRDC&&sys==SYS_CMP&&nav->obias_flag==2) { /* obias_flag 1:DCB product, 2:OSB product */
         flag=0;
     }
@@ -153,9 +153,9 @@ static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
             return (P2-gamma*P1)/(1.0-gamma);
         }
         else if (sys==SYS_CMP) { /* B1-B2 */
-            gamma=SQR(((obs->code[fr[0]]==CODE_L2I)?FREQ1_CMP:FREQL1)/FREQ2_CMP);
-            if      (!flag&&obs->code[fr[0]]==CODE_L2I) b1=gettgd(sat,nav,0); /* TGD_B1I */
-            else if (!flag&&obs->code[fr[0]]==CODE_L1P) b1=gettgd(sat,nav,2); /* TGD_B1Cp */
+            gamma=SQR(((obs->code[fr2[0]]==CODE_L2I)?FREQ1_CMP:FREQL1)/FREQ2_CMP);
+            if      (!flag&&obs->code[fr2[0]]==CODE_L2I) b1=gettgd(sat,nav,0); /* TGD_B1I */
+            else if (!flag&&obs->code[fr2[0]]==CODE_L1P) b1=gettgd(sat,nav,2); /* TGD_B1Cp */
             else if (!flag) b1=gettgd(sat,nav,2)+gettgd(sat,nav,4); /* TGD_B1Cp+ISC_B1Cd */
             else b1=0.0;
             if (!flag) b2=gettgd(sat,nav,1); /* TGD_B2I/B2bI (m) */
@@ -189,8 +189,8 @@ static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
             return P1-b1;
         }
         else if (sys==SYS_CMP) { /* B1I/B1Cp/B1Cd */
-            if      (!flag&&obs->code[fr[0]]==CODE_L2I) b1=gettgd(sat,nav,0); /* TGD_B1I */
-            else if (!flag&&obs->code[fr[0]]==CODE_L1P) b1=gettgd(sat,nav,2); /* TGD_B1Cp */
+            if      (!flag&&obs->code[fr2[0]]==CODE_L2I) b1=gettgd(sat,nav,0); /* TGD_B1I */
+            else if (!flag&&obs->code[fr2[0]]==CODE_L1P) b1=gettgd(sat,nav,2); /* TGD_B1Cp */
             else if (!flag) b1=gettgd(sat,nav,2)+gettgd(sat,nav,4); /* TGD_B1Cp+ISC_B1Cd */
             else b1=0;
             return P1-b1;
@@ -662,7 +662,7 @@ extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
 {
     prcopt_t opt_=*opt;
     double *rs,*dts,*var,*azel_,*resp;
-    int i,stat,vsat[MAXOBS]={0},svh[MAXOBS];
+    int i,stat,vsat[MAXOBS]={0},svh[MAXOBS],sys,fr;
     
     trace(3,"pntpos  : tobs=%s n=%d\n",time_str(obs[0].time,3),n);
     
@@ -680,11 +680,15 @@ extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
     
     if (ssat) {
         for (i=0;i<MAXSAT;i++) {
-            ssat[i].snr_rover[0]=0;
-            ssat[i].snr_base[0]=0;
+            sys=satsys(i+1,NULL);
+            fr=sys2freid(sys,0,opt);
+            ssat[i].snr_rover[fr]=0;
+            ssat[i].snr_base[fr]=0;
         }
         for (i=0;i<n;i++)
-            ssat[obs[i].sat-1].snr_rover[0]=obs[i].SNR[0];
+            sys=satsys(obs[i].sat,NULL);
+            fr=sys2freid(sys,0,opt);
+            ssat[obs[i].sat-1].snr_rover[fr]=obs[i].SNR[fr];
     }
     
     if (opt_.mode!=PMODE_SINGLE) { /* for precise positioning */
@@ -710,16 +714,20 @@ extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
     }
     if (ssat) {
         for (i=0;i<MAXSAT;i++) {
+            sys=satsys(i+1,NULL);
+            fr=sys2freid(sys,0,opt);
             ssat[i].vs=0;
             ssat[i].azel[0]=ssat[i].azel[1]=0.0;
-            ssat[i].resp[0]=ssat[i].resc[0]=0.0;
+            ssat[i].resp[fr]=ssat[i].resc[fr]=0.0;
         }
         for (i=0;i<n;i++) {
+            sys=satsys(obs[i].sat,NULL);
+            fr=sys2freid(sys,0,opt);            
             ssat[obs[i].sat-1].azel[0]=azel_[  i*2];
             ssat[obs[i].sat-1].azel[1]=azel_[1+i*2];
             if (!vsat[i]) continue;
             ssat[obs[i].sat-1].vs=1;
-            ssat[obs[i].sat-1].resp[0]=resp[i];
+            ssat[obs[i].sat-1].resp[fr]=resp[i];
         }
     }
     free(rs); free(dts); free(var); free(azel_); free(resp);
