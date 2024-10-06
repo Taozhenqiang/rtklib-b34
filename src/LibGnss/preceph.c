@@ -139,22 +139,21 @@ static int code2sys(char code)
 static int readsp3h(FILE *fp, gtime_t *time, char *type, int *sats,
                     double *bfact, char *tsys)
 {
-    int i=0,j,k=0,ns=0,nl=5,sys,prn;
+    int i=0,j,k=0,ns=0,sys,prn;
     char buff[1024];
 
     trace(3,"readsp3h:\n");
 
-    /* TODO: Still using b33 code due to issues with b34 */
-    while (fgets(buff,sizeof(buff),fp)) {
-
-        if (buff[0]=='#'&&(buff[1]=='c'||buff[1]=='d')) {
+    for (i=0;;i++) {
+        if (!fgets(buff,sizeof(buff),fp)) break;
+        
+        if (i==0) {
             *type=buff[2];
             if (str2time(buff,3,28,time)) return 0;
         }
-        else if (buff[0]=='+'&&buff[1]==' ') {
-            if (i==2) {
+        else if (!strncmp(buff,"+ ",2)) { /* satellite id */
+            if (ns==0) {
                 ns=(int)str2num(buff,3,3);
-                if (ns>85) nl=ns/17+(ns%17!=0);
             }
             for (j=0;j<17&&k<ns;j++) {
                 sys=code2sys(buff[9+3*j]);
@@ -162,17 +161,27 @@ static int readsp3h(FILE *fp, gtime_t *time, char *type, int *sats,
                 if (k<MAXSAT) sats[k++]=satno(sys,prn);
             }
         }
-        else if (i==2*nl+2) {/* %c */
-            memcpy(tsys,buff+9,3); tsys[3]='\0';
+        else if (!strncmp(buff,"++",2)) { /* orbit accuracy */
+            continue;
         }
-        else if (i==2*nl+4) {/* %f */
+        else if (!strncmp(buff,"%c",2)&&tsys[0]=='\0') { /* time system */
+            strncpy(tsys,buff+9,3); tsys[3]='\0';
+        }
+        else if (!strncmp(buff,"%f",2)&&bfact[0]==0.0) { /* fp base number */
             bfact[0]=str2num(buff, 3,10);
             bfact[1]=str2num(buff,14,12);
         }
-        else if (i==2*nl+11){
-            break; /* at end of header */
+        else if (!strncmp(buff,"%i",2)) {
+            continue;
         }
-        i=i+1; /* line counter */
+        else if (!strncmp(buff,"/*",2)) { /* comment */
+            continue;
+        }
+        else if (!strncmp(buff,"* ",2)) { /* first record */
+            /* roll back file pointer */
+            fseek(fp,0,SEEK_SET);
+            break;
+        }
     }
     return ns;
 }
@@ -210,7 +219,7 @@ static void readsp3b(FILE *fp, char type, int *sats, int ns, double *bfact,
         if (!strncmp(buff,"EOF",3)) break;
 
         if (buff[0]!='*'||str2time(buff,3,28,&time)) {
-            trace(2,"sp3 invalid epoch %31.31s\n",buff);
+            /* trace(2,"sp3 invalid epoch %31.31s\n",buff); */
             continue;
         }
         if (!strcmp(tsys,"UTC")) time=utc2gpst(time); /* utc->gpst */

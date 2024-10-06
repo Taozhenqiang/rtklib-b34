@@ -1159,9 +1159,9 @@ static int execses(gtime_t ts, gtime_t te, double ti, const prcopt_t *popt,
         return 0;
     }
     /* name time events file */
-    namefiletm(outfiletm,outfile);
+    /* namefiletm(outfiletm,outfile); */
     /* write header to file with time marks */
-    outhead(outfiletm,infile,n,&popt_,sopt);
+    /* outhead(outfiletm,infile,n,&popt_,sopt); */
 
     iobsu=iobsr=isbs=reverse=aborts=0;
 
