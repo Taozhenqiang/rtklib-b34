@@ -55,8 +55,8 @@
 
 /* constants/global variables ------------------------------------------------*/
 
-static pcvs_t pcvss={0};        /* satellite antenna parameters */
-static pcvs_t pcvsr={0};        /* receiver antenna parameters */
+static spcvs_t pcvss={0};        /* satellite antenna parameters */
+static rpcvs_t pcvsr={0};        /* receiver antenna parameters */
 static obs_t obss={0};          /* observation data */
 static nav_t navs={0};          /* navigation data */
 static sbs_t sbss={0};          /* sbas messages */
@@ -438,7 +438,13 @@ static void procpos(FILE *fp, FILE *fptm, const prcopt_t *popt, const solopt_t *
         if (!strstr(popt->pppopt,"-ENA_FCB")) {
             corr_phase_bias_ssr(obs_ptr,n,&navs);
         }
-        if (!rtkpos(rtk, obs_ptr,n,&navs)) {
+
+        /*multipath correction for BDS2*/
+        if (popt->navsys&SYS_CMP) {
+            BDmulCorr(rtk,obs_ptr,n);
+        }
+
+        if (!rtkpos(rtk,obs_ptr,n,&navs)) {
             if (rtk->sol.eventime.time != 0) {
                 if (mode == SOLMODE_SINGLE_DIR) {
                     outinvalidtm(fptm, sopt, rtk->sol.eventime);
@@ -900,22 +906,22 @@ static int antpos(prcopt_t *opt, int rcvno, const obs_t *obs, const nav_t *nav,
 }
 /* open processing session ----------------------------------------------------*/
 static int openses(const prcopt_t *popt, const solopt_t *sopt,
-                   const filopt_t *fopt, nav_t *nav, pcvs_t *pcvs, pcvs_t *pcvr)
+                   const filopt_t *fopt, nav_t *nav, spcvs_t *pcvs, rpcvs_t *pcvr)
 {
     trace(3,"openses :\n");
 
-    /* read satellite antenna parameters */
-    if (*fopt->satantp&&!(readpcv(fopt->satantp,pcvs))) {
+    /* read satellite and receiver antenna parameters */
+    if (*fopt->satantp&&!(readpcv(fopt->satantp,pcvs,pcvr))) {
         showmsg("error : no sat ant pcv in %s",fopt->satantp);
         trace(1,"sat antenna pcv read error: %s\n",fopt->satantp);
         return 0;
     }
     /* read receiver antenna parameters */
-    if (*fopt->rcvantp&&!(readpcv(fopt->rcvantp,pcvr))) {
+    /* if (*fopt->rcvantp&&!(readpcv(fopt->rcvantp,pcvr))) {
         showmsg("error : no rec ant pcv in %s",fopt->rcvantp);
         trace(1,"rec antenna pcv read error: %s\n",fopt->rcvantp);
         return 0;
-    }
+    } */
     /* open geoid data */
     if (sopt->geoid>0&&*fopt->geoid) {
         if (!opengeoid(sopt->geoid,fopt->geoid)) {
@@ -926,7 +932,7 @@ static int openses(const prcopt_t *popt, const solopt_t *sopt,
     return 1;
 }
 /* close processing session ---------------------------------------------------*/
-static void closeses(nav_t *nav, pcvs_t *pcvs, pcvs_t *pcvr)
+static void closeses(nav_t *nav, spcvs_t *pcvs, rpcvs_t *pcvr)
 {
     trace(3,"closeses:\n");
 
@@ -945,27 +951,28 @@ static void closeses(nav_t *nav, pcvs_t *pcvs, pcvs_t *pcvr)
     traceclose();
 }
 /* set antenna parameters ----------------------------------------------------*/
-static void setpcv(gtime_t time, prcopt_t *popt, nav_t *nav, const pcvs_t *pcvs,
-                   const pcvs_t *pcvr, const sta_t *sta)
+static void setpcv(gtime_t time, prcopt_t *popt, nav_t *nav, const spcvs_t *pcvs,
+                   const rpcvs_t *pcvr, const sta_t *sta)
 {
-    pcv_t *pcv,pcv0={0};
+    spcv_t *spcv,spcv0={0};
+    rpcv_t *rpcv,rpcv0={0};
     double pos[3],del[3];
     int i,j,mode=PMODE_DGPS<=popt->mode&&popt->mode<=PMODE_FIXED;
     char id[64];
 
     /* set satellite antenna parameters */
     for (i=0;i<MAXSAT;i++) {
-        nav->pcvs[i]=pcv0;
+        nav->spcvs[i]=spcv0;
         if (!(satsys(i+1,NULL)&popt->navsys)) continue;
-        if (!(pcv=searchpcv(i+1,"",time,pcvs))) {
+        if (!(spcv=searchspcv(i+1,"",time,pcvs))) {
             satno2id(i+1,id);
             trace(4,"no satellite antenna pcv: %s\n",id);
             continue;
         }
-        nav->pcvs[i]=*pcv;
+        nav->spcvs[i]=*spcv;
     }
     for (i=0;i<(mode?2:1);i++) {
-        popt->pcvr[i]=pcv0;
+        popt->pcvr[i]=rpcv0;
         if (!strcmp(popt->anttype[i],"*")) { /* set by station parameters */
             strcpy(popt->anttype[i],sta[i].antdes);
             if (sta[i].deltype==1) { /* xyz */
@@ -979,13 +986,13 @@ static void setpcv(gtime_t time, prcopt_t *popt, nav_t *nav, const pcvs_t *pcvs,
                 for (j=0;j<3;j++) popt->antdel[i][j]=stas[i].del[j];
             }
         }
-        if (!(pcv=searchpcv(0,popt->anttype[i],time,pcvr))) {
+        if (!(rpcv=searchrpcv(popt->anttype[i],time,pcvr))) {
             trace(2,"no receiver antenna pcv: %s\n",popt->anttype[i]);
             *popt->anttype[i]='\0';
             continue;
         }
-        strcpy(popt->anttype[i],pcv->type);
-        popt->pcvr[i]=*pcv;
+        strcpy(popt->anttype[i],rpcv->type);
+        popt->pcvr[i]=*rpcv;
     }
 }
 /* read ocean tide loading parameters ----------------------------------------*/

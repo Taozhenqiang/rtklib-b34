@@ -1,4 +1,15 @@
 {
     "cmake.cmakePath": "D:\\cmake-3.30.3-windows-x86_64\\bin\\cmake.exe", //设置cmake路径
-    "cmake.generator": "MinGW Makefiles" //设置CMake生成器
+    "cmake.generator": "MinGW Makefiles",
+    "files.associations": {
+        "cmath": "c"
+    }, //设置CMake生成器
+
+    // clang-format 扩展的配置
+    "clang-format.style" : "file",
+    "clang-format.assumeFilename": "${workspaceFolder}\\.clang-format",
+    "clang-format.executable": "D:\\Program Files (x86)\\clang\\clang-format.exe",
+    "clang-format.fallbackStyle": "Google",
+
+    
 }

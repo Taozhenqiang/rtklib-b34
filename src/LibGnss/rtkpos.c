@@ -2372,12 +2372,12 @@ extern void rtkfree(rtk_t *rtk)
 * notes  : before calling function, base station position rtk->sol.rb[] should
 *          be properly set for relative mode except for moving-baseline
 *-----------------------------------------------------------------------------*/
-extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav)
+extern int rtkpos(rtk_t *rtk, obsd_t *obs, int n, const nav_t *nav)
 {
     prcopt_t *opt=&rtk->opt;
     sol_t solb={{0}};
     gtime_t time;
-    int i,nu,nr;
+    int i,nu,nr,ns;
     char msg[128]="";
 
     DebugTime(obs[0].time,469290,2188);
@@ -2410,6 +2410,9 @@ extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav)
     } else rtk->sol.time=obs[0].time;
     if (time.time!=0) rtk->tt=timediff(rtk->sol.time,time);
 
+    /* PPP observation value pre-check*/
+    obsScan_PPP(opt,obs,nu,&ns);
+
     /* return to static start if long delay without rover data */
     if (fabs(rtk->tt)>300&&rtk->initial_mode==PMODE_STATIC_START) {
         rtk->opt.mode=PMODE_STATIC_START;
@@ -2432,7 +2435,7 @@ extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav)
     }
     /* precise point positioning */
     if (opt->mode>=PMODE_PPP_KINEMA) {
-        pppos(rtk,obs,nu,nav);
+        pppos(rtk,obs,ns,nav);
         outsolstat(rtk,nav);
         return 1;
     }

@@ -390,17 +390,18 @@ extern void readsp3(const char *file, nav_t *nav, int opt)
 *-----------------------------------------------------------------------------*/
 extern int readsap(const char *file, gtime_t time, nav_t *nav)
 {
-    pcvs_t pcvs={0};
-    pcv_t pcv0={0},*pcv;
+    spcvs_t pcvs={0};
+    rpcvs_t pcvr={0};
+    spcv_t pcv0={0},*pcv;
     int i;
 
     trace(3,"readsap : file=%s time=%s\n",file,time_str(time,0));
 
-    if (!readpcv(file,&pcvs)) return 0;
+    if (!readpcv(file,&pcvs,&pcvr)) return 0;
 
     for (i=0;i<MAXSAT;i++) {
-        pcv=searchpcv(i+1,"",time,&pcvs);
-        nav->pcvs[i]=pcv?*pcv:pcv0;
+        pcv=searchspcv(i+1,"",time,&pcvs);
+        nav->spcvs[i]=pcv?*pcv:pcv0;
     }
     free(pcvs.pcv);
     return 1;
@@ -839,16 +840,16 @@ static int pephclk(gtime_t time, int sat, const nav_t *nav, double *dts,
 *            GPS/QZSS : L1-L2
 *            GLONASS  : G1-G2
 *            Galileo  : E1-E5b
-*            BDS      : B1I-B2I
+*            BDS      : B1I-B3I
 *            NavIC    : L5-S
 *-----------------------------------------------------------------------------*/
 extern void satantoff(gtime_t time, const double *rs, int sat, const nav_t *nav,
                       double *dant)
 {
-    const pcv_t *pcv=nav->pcvs+sat-1;
+    const spcv_t *spcv=nav->spcvs+sat-1;
     double ex[3],ey[3],ez[3],es[3],r[3],rsun[3],gmst,erpv[5]={0},freq[2];
     double C1,C2,dant1,dant2;
-    int i,sys;
+    int i,sys,j,k;
 
     trace(4,"satantoff: time=%s sat=%2d\n",time_str(time,3),sat);
 
@@ -869,20 +870,29 @@ extern void satantoff(gtime_t time, const double *rs, int sat, const nav_t *nav,
     /* iono-free LC coefficients */
     sys=satsys(sat,NULL);
     if (sys==SYS_GPS||sys==SYS_QZS) { /* L1-L2 */
+        j=0,k=1;
         freq[0]=FREQL1;
         freq[1]=FREQL2;
     }
     else if (sys==SYS_GLO) { /* G1-G2 */
+        j=0;k=1;
         freq[0]=sat2freq(sat,CODE_L1C,nav);
         freq[1]=sat2freq(sat,CODE_L2C,nav);
     }
     else if (sys==SYS_GAL) { /* E1-E5b */
+        j=0;k=1;
         freq[0]=FREQL1;
         freq[1]=FREQE5b;
     }
-    else if (sys==SYS_CMP) { /* B1I-B2I */
+    else if (sys==SYS_CMP) { /* B1I-B3I */
+        j=0;k=2;
         freq[0]=FREQ1_CMP;
-        freq[1]=FREQ2_CMP;
+        freq[1]=FREQ3_CMP;
+    }
+    else if (sys==SYS_QZS) { /* B1I-B3I */
+        j=0;k=1;
+        freq[0]=FREQL1;
+        freq[1]=FREQL2;
     }
     else if (sys==SYS_IRN) { /* L5-S */
         freq[0]=FREQL5;
@@ -895,8 +905,8 @@ extern void satantoff(gtime_t time, const double *rs, int sat, const nav_t *nav,
 
     /* iono-free LC */
     for (i=0;i<3;i++) {
-        dant1=pcv->off[0][0]*ex[i]+pcv->off[0][1]*ey[i]+pcv->off[0][2]*ez[i];
-        dant2=pcv->off[1][0]*ex[i]+pcv->off[1][1]*ey[i]+pcv->off[1][2]*ez[i];
+        dant1=spcv->off[j][0]*ex[i]+spcv->off[j][1]*ey[i]+spcv->off[j][2]*ez[i];
+        dant2=spcv->off[k][0]*ex[i]+spcv->off[k][1]*ey[i]+spcv->off[k][2]*ez[i];
         dant[i]=C1*dant1+C2*dant2;
     }
 }

@@ -65,8 +65,15 @@ extern "C"
 #define COPYRIGHT_RTKLIB \
     "Copyright (C) 2007-2020 T.Takasu\nAll rights reserved."
 
+/*modified*/
 #define BDS2 "C01 C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12 C13 C14 C16"
 #define BDS3 "C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 C32 C33 C34 C35 C36 C37 C38 C39 C40 C41 C42 C43 C44 C45 C46 C56 C57 C58 C59 C60 C61"
+
+#define GNSISB_CT     1       /* GNSS ISB: time constant */
+#define GNSISB_RW     2       /* GNSS ISB: random walk process */
+#define GNSISB_WN     3       /* GNSS ISB: white noise process */
+
+/*end*/
 
 #define PI 3.1415926535897932  /* pi */
 #define D2R (PI / 180.0)       /* deg to rad */
@@ -610,21 +617,41 @@ extern "C"
     } erp_t;
 
     typedef struct
-    {                          /* antenna parameter type */
+    {                          /* satellite antenna parameter type */
         int sat;               /* satellite number (0:receiver) */
         char type[MAXANT];     /* antenna type */
         char code[MAXANT];     /* serial number or satellite code */
         gtime_t ts, te;        /* valid time start and end */
         double off[NFREQ][3];  /* phase center offset e/n/u or x/y/z (m) */
-        double var[NFREQ][19]; /* phase center variation (m) */
-                               /* el=90,85,...,0 or nadir=0,1,2,3,... (deg) */
-    } pcv_t;
+        double var[NFREQ][19*73]; /* phase center variation (m) */
+                               /* 73=360/5+1,19=90/5+1 */
+        double dazi;           /* increment of the azimuth*/
+        double zen1,zen2,dzen; /* satellite antenna: Definition of the grid in nadir angle.*/
+    } spcv_t;
+
+    typedef struct
+    {                          /* reciver antenna parameter type */
+        char type[MAXANT];     /* antenna type */
+        char code[MAXANT];     /* serial number or satellite code */
+        gtime_t ts, te;        /* valid time start and end */
+        double off[NFREQ][3];  /* phase center offset e/n/u or x/y/z (m) */
+        double var[NSYS*NFREQ][41*73]; /* phase center variation (m) */
+                               /* 73=360/5+1,41=20/0.5+1 */
+        double dazi;           /* increment of the azimuth*/
+        double zen1,zen2,dzen; /* receiver antenna: Definition of the grid in zenith angle.*/
+    } rpcv_t;
 
     typedef struct
     {                /* antenna parameters type */
         int n, nmax; /* number of data/allocated */
-        pcv_t *pcv;  /* antenna parameters data */
-    } pcvs_t;
+        spcv_t *pcv;  /* antenna parameters data */
+    } spcvs_t;
+
+    typedef struct
+    {                /* antenna parameters type */
+        int n, nmax; /* number of data/allocated */
+        rpcv_t *pcv;  /* antenna parameters data */
+    } rpcvs_t;
 
     typedef struct
     {                /* almanac type */
@@ -889,7 +916,7 @@ extern "C"
         double cbias[MAXSAT][MAX_CODE_BIAS_FREQS][MAX_CODE_BIASES]; /* satellite DCB [0:P1-C1,1:P2-C2][code] (m) */
         double obias[MAXSTA][MAXCODE];                              /* satellite DCB  (m) GPS/GLONASS/Galileo/Beidou/QZSS*/
         double rbias[MAXRCV][MAX_CODE_BIAS_FREQS][MAX_CODE_BIASES]; /* receiver DCB (0:P1-P2,1:P1-C1,2:P2-C2) (m) */
-        pcv_t pcvs[MAXSAT];                                         /* satellite antenna pcv */
+        spcv_t spcvs[MAXSAT];                                         /* satellite antenna pcv */
         sbssat_t sbssat;                                            /* SBAS satellite corrections */
         sbsion_t sbsion[MAXBAND + 1];                               /* SBAS ionosphere corrections */
         dgps_t dgps[MAXSAT];                                        /* DGPS corrections */
@@ -1071,7 +1098,9 @@ extern "C"
         int mindropsats;         /* min sats to drop sats in AR */
         int minfix;              /* min fix count to hold ambiguity */
         int armaxiter;           /* max iteration to resolve ambiguity */
+        int sysisb;              /* model of GNSS ISB (1:constant,2:randow walk,3:white noise)*/
         int ionoopt;             /* ionosphere option (IONOOPT_???) */
+        int ionoise;             /* model of ionosphere noise */
         int tropopt;             /* troposphere option (TROPOPT_???) */
         int dynamics;            /* dynamics model (0:none,1:velocity,2:accel) */
         int tidecorr;            /* earth tide correction (0:off,1:solid,2:solid+otl+pole) */
@@ -1104,7 +1133,7 @@ extern "C"
         double rb[3];            /* base position for relative mode {x,y,z} (ecef) (m) */
         char anttype[2][MAXANT]; /* antenna types {rover,base} */
         double antdel[2][3];     /* antenna delta {{rov_e,rov_n,rov_u},{ref_e,ref_n,ref_u}} */
-        pcv_t pcvr[2];           /* receiver antenna parameters {rov,base} */
+        rpcv_t pcvr[2];           /* receiver antenna parameters {rov,base} */
         uint8_t exsats[MAXSAT];  /* excluded satellites (1:excluded,2:included) */
         int maxaveep;            /* max averaging epochs */
         int initrst;             /* initialize by restart */
@@ -1643,6 +1672,8 @@ extern "C"
 
 #endif /* TRACE */
 
+    /* mutipath model*/
+    EXPORT void BDmulCorr(rtk_t *rtk, obsd_t *obs, int n);
     /* platform dependent functions ----------------------------------------------*/
     EXPORT int execcmd(const char *cmd);
     EXPORT int expath(const char *path, char *paths[], int nmax);
@@ -1673,12 +1704,13 @@ extern "C"
     EXPORT int seliflc(int optnf, int sys);
 
     /* antenna models ------------------------------------------------------------*/
-    EXPORT int readpcv(const char *file, pcvs_t *pcvs);
-    EXPORT pcv_t *searchpcv(int sat, const char *type, gtime_t time,
-                            const pcvs_t *pcvs);
-    EXPORT void antmodel(const pcv_t *pcv, const double *del, const double *azel,
+    EXPORT int readpcv(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr);
+    EXPORT spcv_t *searchspcv(int sat, const char *type, gtime_t time,
+                            const spcvs_t *pcvs);
+    EXPORT rpcv_t *searchrpcv(const char *type, gtime_t time, const rpcvs_t *pcvs);                           
+    EXPORT void antmodel(const rpcv_t *rpcv, const double *del, const double *azel,
                          int opt, double *dant);
-    EXPORT void antmodel_s(const pcv_t *pcv, double nadir, double *dant);
+    EXPORT void antmodel_s(const spcv_t *spcv, double nadir, double *dant);
 
     /* earth tide models ---------------------------------------------------------*/
     EXPORT void sunmoonpos(gtime_t tutc, const double *erpv, double *rsun,
@@ -1941,12 +1973,13 @@ extern "C"
     /* precise positioning -------------------------------------------------------*/
     EXPORT void rtkinit(rtk_t *rtk, const prcopt_t *opt);
     EXPORT void rtkfree(rtk_t *rtk);
-    EXPORT int rtkpos(rtk_t *rtk, const obsd_t *obs, int nobs, const nav_t *nav);
+    EXPORT int rtkpos(rtk_t *rtk, obsd_t *obs, int nobs, const nav_t *nav);
     EXPORT int rtkopenstat(const char *file, int level);
     EXPORT void rtkclosestat(void);
     EXPORT int rtkoutstat(rtk_t *rtk, int level, char *buff);
 
     /* precise point positioning -------------------------------------------------*/
+    EXPORT void obsScan_PPP(const prcopt_t *opt, obsd_t *obs, const int nobs, int *ns);
     EXPORT void pppos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav);
     EXPORT int pppnx(const prcopt_t *opt);
     EXPORT int pppoutstat(rtk_t *rtk, char *buff);
