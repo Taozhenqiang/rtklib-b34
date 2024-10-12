@@ -774,7 +774,7 @@ extern void satposs(gtime_t teph, const obsd_t *obs, int n, const nav_t *nav,
                     int ephopt, double *rs, double *dts, double *var, int *svh)
 {
     gtime_t time[2*MAXOBS]={{0}};
-    double dt,pr;
+    double dt=0,pr;
     int i,j;
 
     trace(3,"satposs : teph=%s n=%d ephopt=%d\n",time_str(teph,3),n,ephopt);
@@ -797,9 +797,17 @@ extern void satposs(gtime_t teph, const obsd_t *obs, int n, const nav_t *nav,
         /* satellite clock bias by broadcast ephemeris */
         if (!ephclk(time[i],teph,obs[i].sat,nav,&dt)) {
             trace(3,"no broadcast clock %s sat=%2d\n",time_str(time[i],3),obs[i].sat);
-            continue;
+            /* continue; */
         }
-        time[i]=timeadd(time[i],-dt);
+        if (!pephclk(time[i],obs[i].sat,nav,&dt,NULL)) {
+            trace(3,"no precise clock %s sat=%2d\n",time_str(time[i],3),obs[i].sat);
+        }
+        if (dt) {
+           time[i]=timeadd(time[i],-dt); 
+        }
+        else {
+            trace(3,"no clock %s sat=%2d\n",time_str(time[i],3),obs[i].sat);
+        }
 
         /* satellite position and clock at transmission time */
         if (!satpos(time[i],teph,obs[i].sat,ephopt,nav,rs+i*6,dts+i*2,var+i,

@@ -724,7 +724,7 @@ static int readobsnav(gtime_t ts, gtime_t te, double ti, const char **infile,
                       const int *index, int n, const prcopt_t *prcopt,
                       obs_t *obs, nav_t *nav, sta_t *sta)
 {
-    int i,j,ind=0,nobs=0,rcv=1;
+    int i,j,ind=0,nobs=0,rcv=1,flag=1; /* flag: only precise ephemeris and precise clock*/
 
     trace(3,"readobsnav: ts=%s n=%d\n",time_str(ts,0),n);
 
@@ -755,16 +755,22 @@ static int readobsnav(gtime_t ts, gtime_t te, double ti, const char **infile,
         trace(1,"\n");
         return 0;
     }
-    if (nav->n<=0&&nav->ng<=0&&nav->ns<=0) {
+    /* if have precise ephemeris and precise clock, no broadcast ephemeris is OK*/
+    if (nav->n<=0&&nav->ng<=0&&nav->ns<=0&&nav->ne<=0&&nav->nc<=0) {
         checkbrk("error : no nav data");
         trace(1,"\n");
         return 0;
+    }
+    else if (nav->n<=0&&nav->ng<=0&&nav->ns<=0) {
+        flag=0;
     }
     /* sort observation data */
     nepoch=sortobs(obs);
 
     /* delete duplicated ephemeris */
-    uniqnav(nav);
+    if (flag) {
+       uniqnav(nav);
+    }   
 
     /* set time span for progress display */
     if (ts.time==0||te.time==0) {

@@ -293,11 +293,11 @@ static int rescode(int iter, const obsd_t *obs, int n, const double *rs,
                    double *azel, int *vsat, double *resp, int *ns)
 {
     gtime_t time;
-    double r,freq,dion=0.0,dtrp=0.0,vmeas,vion=0.0,vtrp=0.0,rr[3],pos[3],dtr,e[3],P;
+    double r,freq,dion=0.0,dtrp=0.0,vmeas,vion=0.0,vtrp=0.0,rr[3],pos[3],dtr=0.0,e[3],P;
     int i,j,nv=0,sat,sys,mask[NX-3]={0},f=0;
 
     for (i=0;i<3;i++) rr[i]=x[i];
-    dtr=x[3];
+    for (i=3;i<NX;i++) dtr+=x[i];
     
     ecef2pos(rr,pos);
     trace(3,"rescode: rr=%.3f %.3f %.3f\n",rr[0], rr[1], rr[2]);
@@ -349,18 +349,26 @@ static int rescode(int iter, const obsd_t *obs, int n, const double *rs,
             sat,v[nv],P,r,dtr,dts[i*2],dion,dtrp);
         
         /* design matrix */
-        for (j=0;j<NX;j++) {
-            H[j+nv*NX]=j<3?-e[j]:(j==3?1.0:0.0);
+        if (opt->navsys&SYS_GPS) {
+            for (j=0;j<NX;j++) {
+                H[j+nv*NX]=j<3?-e[j]:(j==3?1.0:0.0);
+            }            
         }
+        else {
+            for (j=0;j<NX;j++) {
+                H[j+nv*NX]=j<3?-e[j]:(j==3?0.0:0.0);
+            }                
+        }
+
         /* time system offset and receiver bias correction */
-        if      (sys==SYS_GLO) {v[nv]-=x[4]; H[4+nv*NX]=1.0; mask[1]=1;}
-        else if (sys==SYS_GAL) {v[nv]-=x[5]; H[5+nv*NX]=1.0; mask[2]=1;}
-        else if (sys==SYS_CMP) {v[nv]-=x[6]; H[6+nv*NX]=1.0; mask[3]=1;}
-        else if (sys==SYS_IRN) {v[nv]-=x[7]; H[7+nv*NX]=1.0; mask[4]=1;}
+        if      (sys==SYS_GLO) { H[4+nv*NX]=1.0; mask[1]=1;}
+        else if (sys==SYS_GAL) { H[5+nv*NX]=1.0; mask[2]=1;}
+        else if (sys==SYS_CMP) { H[6+nv*NX]=1.0; mask[3]=1;}
+        else if (sys==SYS_IRN) { H[7+nv*NX]=1.0; mask[4]=1;}
 #ifdef QZSDT
-        else if (sys==SYS_QZS) {v[nv]-=x[8]; H[8+nv*NX]=1.0; mask[5]=1;}
+        else if (sys==SYS_QZS) { H[8+nv*NX]=1.0; mask[5]=1;}
 #endif
-        else mask[0]=1;
+        else if (sys==SYS_GPS) { H[3+nv*NX]=1.0; mask[0]=1;}
 
         vsat[i]=1; resp[i]=v[nv]; (*ns)++;
         
@@ -423,7 +431,7 @@ static int estpos(const obsd_t *obs, int n, const double *rs, const double *dts,
     
     trace(3,"estpos  : n=%d\n",n);
     
-    v=mat(n+NX-3,1); H=mat(NX,n+NX-3); var=mat(n+NX-3,1);
+    v=mat(n+5,1); H=mat(NX,n+5); var=mat(n+5,1);
     
     for (i=0;i<3;i++) x[i]=sol->rr[i];
 

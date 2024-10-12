@@ -1030,7 +1030,7 @@ static int ppp_res(int post, const obsd_t *obs, int n, const double *rs,
 {
     prcopt_t *opt=&rtk->opt;
     double y,r,cdtr,bias,rr[3],pos[3],e[3],dtdx[3],L[NFREQ],P[NFREQ],Lc,Pc,C;
-    double var[MAXOBS*2],dtrp=0.0,dion=0.0,vart=0.0,vari=0.0,dcb,freq;
+    double var[MAXOBS*2],dtrp=0.0,dion=0.0,vart=0.0,vari=0.0,dcb,freq,res=0.0;
     double dantr[NFREQ]={0},dants[NFREQ]={0};
     double ve[MAXOBS*2*NFREQ]={0},vmax=0;
     char str[32];
@@ -1160,7 +1160,7 @@ static int ppp_res(int post, const obsd_t *obs, int n, const double *rs,
                 H[IB(sat,frq,opt)+nx*nv]=1.0;
             }
             /* residual */
-            double res=y-(r+cdtr-CLIGHT*dts[i*2]+dtrp+C*dion+dcb+bias);
+            res=y-(r+cdtr-CLIGHT*dts[i*2]+dtrp+C*dion+dcb+bias);
             if (v) v[nv]=res;
 
             if (code==0) rtk->ssat[sat-1].resc[fr]=res;  /* carrier phase */

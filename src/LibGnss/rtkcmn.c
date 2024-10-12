@@ -1814,7 +1814,7 @@ extern int filter(double *x,double *P,const double *H,const double *v,
     /* create list of non-zero states */
     ix=imat(n,1);
     for (i=k=0;i<n;i++)
-        if (x[i] !=0.0&&P[i+i*n]>0.0)
+        if (x[i]!=0.0&&P[i+i*n]>0.0)
             ix[k++]=i;
     x_=mat(k,1);
     xp_=mat(k,1);

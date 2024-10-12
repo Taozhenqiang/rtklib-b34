@@ -1760,6 +1760,7 @@ extern "C"
     EXPORT double eph2clk(gtime_t time, const eph_t *eph);
     EXPORT double geph2clk(gtime_t time, const geph_t *geph);
     EXPORT double seph2clk(gtime_t time, const seph_t *seph);
+    EXPORT int pephclk(gtime_t time, int sat, const nav_t *nav, double *dts, double *varc);
     EXPORT void eph2pos(gtime_t time, const eph_t *eph, double *rs, double *dts,
                         double *var);
     EXPORT void geph2pos(gtime_t time, const geph_t *geph, double *rs, double *dts,
