@@ -44,7 +44,6 @@ static char fre_[RNX_NUMSYS][1024];
 /* system options table ------------------------------------------------------*/
 #define SWTOPT  "0:off,1:on"
 #define MODOPT  "0:single,1:dgps,2:kinematic,3:static,4:static-start,5:movingbase,6:fixed,7:ppp-kine,8:ppp-static,9:ppp-fixed"
-#define FRQOPT  "1:l1,2:l1+l2,3:l1+l2+l5,4:l1+l2+l5+l6"
 #define TYPOPT  "0:forward,1:backward,2:combined,3:combined-nophasereset"
 #define IONOPT  "0:off,1:brdc,2:sbas,3:dual-freq,4:est-stec,5:ionex-tec,6:qzs-brdc"
 #define TRPOPT  "0:off,1:saas,2:sbas,3:est-ztd,4:est-ztdgrad"
@@ -67,12 +66,12 @@ static char fre_[RNX_NUMSYS][1024];
 
 EXPORT opt_t sysopts[]={
     {"pos1-posmode",    3,  (void *)&prcopt_.mode,       MODOPT },
-    {"pos1-frequency",  3,  (void *)&prcopt_.nf,         FRQOPT },
+    {"pos1-frequency",  0,  (void *)&prcopt_.nf,         ""     },
     {"pos1-GPSfreid",   2,  (void *)&fre_[0],            ""     },
     {"pos1-GLOfreid",   2,  (void *)&fre_[1],            ""     },
     {"pos1-GALfreid",   2,  (void *)&fre_[2],            ""     },
-    {"pos1-QZSfreid",   2,  (void *)&fre_[3],            ""     },
-    {"pos1-BDSfreid",   2,  (void *)&fre_[4],            ""     },
+    {"pos1-BDSfreid",   2,  (void *)&fre_[3],            ""     },    
+    {"pos1-QZSfreid",   2,  (void *)&fre_[4],            ""     },
     {"pos1-soltype",    3,  (void *)&prcopt_.soltype,    TYPOPT },
     {"pos1-elmask",     1,  (void *)&elmask_,            "deg"  },
     {"pos1-snrmask_r",  3,  (void *)&prcopt_.snrmask.ena[0],SWTOPT},
@@ -82,9 +81,9 @@ EXPORT opt_t sysopts[]={
     {"pos1-snrmask_L5", 2,  (void *)snrmask_[2],         ""     },
     {"pos1-dynamics",   3,  (void *)&prcopt_.dynamics,   SWTOPT },
     {"pos1-tidecorr",   3,  (void *)&prcopt_.tidecorr,   TIDEOPT},
-    {"pos1-sysisb",     1,  (void *)&prcopt_.sysisb,     ""     },
+    {"pos1-sysisb",     0,  (void *)&prcopt_.sysisb,     ""     },
     {"pos1-ionoopt",    3,  (void *)&prcopt_.ionoopt,    IONOPT },
-    {"pos1-ionoise",    1,  (void *)&prcopt_.ionoise,    ""     },
+    {"pos1-ionoise",    0,  (void *)&prcopt_.ionoise,    ""     },
     {"pos1-tropopt",    3,  (void *)&prcopt_.tropopt,    TRPOPT },
     {"pos1-sateph",     3,  (void *)&prcopt_.sateph,     EPHOPT },
     {"pos1-posopt1",    3,  (void *)&prcopt_.posopt[0],  SWTOPT },
@@ -97,7 +96,8 @@ EXPORT opt_t sysopts[]={
     {"pos1-bds2",       3,  (void *)&prcopt_.bdsflag[0], SWTOPT },
     {"pos1-bds3",       3,  (void *)&prcopt_.bdsflag[1], SWTOPT },
     {"pos1-navsys",     0,  (void *)&prcopt_.navsys,     NAVOPT },
-    
+
+    {"pos2-artype",     0,  (void *)&prcopt_.artype,     ""     },    
     {"pos2-armode",     3,  (void *)&prcopt_.modear,     ARMOPT },
     {"pos2-gloarmode",  3,  (void *)&prcopt_.glomodear,  GAROPT },
     {"pos2-bdsarmode",  3,  (void *)&prcopt_.bdsmodear,  SWTOPT },
@@ -194,8 +194,7 @@ EXPORT opt_t sysopts[]={
     {"misc-rnxopt2",    2,  (void *)prcopt_.rnxopt[1],   ""     },
     {"misc-pppopt",     2,  (void *)prcopt_.pppopt,      ""     },
     
-    {"file-satantfile", 2,  (void *)&filopt_.satantp,    ""     },
-    {"file-rcvantfile", 2,  (void *)&filopt_.rcvantp,    ""     },
+    {"file-antfile",    2,  (void *)&filopt_.antp,       ""     },
     {"file-staposfile", 2,  (void *)&filopt_.stapos,     ""     },
     {"file-geoidfile",  2,  (void *)&filopt_.geoid,      ""     },
     {"file-ionofile",   2,  (void *)&filopt_.iono,       ""     },
@@ -560,8 +559,7 @@ extern void resetsysopts(void)
     
     prcopt_=prcopt_default;
     solopt_=solopt_default;
-    filopt_.satantp[0]='\0';
-    filopt_.rcvantp[0]='\0';
+    filopt_.antp   [0]='\0';
     filopt_.stapos [0]='\0';
     filopt_.geoid  [0]='\0';
     filopt_.dcb    [0]='\0';

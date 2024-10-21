@@ -269,7 +269,7 @@ static void combtec(nav_t *nav)
     }
     nav->nt=n;
     
-    trace(4,"combtec : nav->nt=%d\n",nav->nt);
+    trace(3,"combtec : nav->nt=%d\n",nav->nt);
 }
 /* read ionex tec grid file ----------------------------------------------------
 * read ionex ionospheric tec grid file
@@ -411,7 +411,7 @@ static int iondelay(gtime_t time, const tec_t *tec, const double *pos,
         *delay+=fact*fs*vtec;
         *var+=fact*fact*fs*fs*rms*rms;
     }
-    trace(4,"iondelay: delay=%7.2f std=%6.2f\n",*delay,sqrt(*var));
+    trace(3,"iondelay: delay=%7.2f std=%6.2f\n",*delay,sqrt(*var));
     
     return 1;
 }

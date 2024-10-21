@@ -85,11 +85,13 @@ static void init_bias_ix(void) {
     code_Obias_ix[0][CODE_L5Q]=6;
     code_Obias_ix[0][CODE_L5X]=7;
     code_Obias_ix[0][CODE_L2C]=8;
+
     /* GLONASS */
     code_Obias_ix[1][CODE_L1C]=0;
     code_Obias_ix[1][CODE_L1P]=1;
     code_Obias_ix[1][CODE_L2C]=2;
     code_Obias_ix[1][CODE_L2P]=3;
+
     /* Galileo */
     code_Obias_ix[2][CODE_L1C]=0;
     code_Obias_ix[2][CODE_L1X]=1;
@@ -100,6 +102,7 @@ static void init_bias_ix(void) {
     code_Obias_ix[2][CODE_L7X]=6;
     code_Obias_ix[2][CODE_L8Q]=7;   
     code_Obias_ix[2][CODE_L8X]=8;
+
     /* Beidou */
     code_Obias_ix[3][CODE_L2I]=0;
     code_Obias_ix[3][CODE_L6I]=1;
@@ -322,7 +325,7 @@ static void combpeph(nav_t *nav, int opt)
     }
     nav->ne=i+1;
 
-    trace(4,"combpeph: ne=%d\n",nav->ne);
+    trace(3,"combpeph: ne=%d\n",nav->ne);
 }
 /* read sp3 precise ephemeris file ---------------------------------------------
 * read sp3 precise ephemeris/clock files and set them to navigation data
@@ -364,7 +367,7 @@ extern void readsp3(const char *file, nav_t *nav, int opt)
             !strstr(ext,".eph")&&!strstr(ext,".EPH")) continue;
 
         if (!(fp=fopen(efiles[i],"r"))) {
-            trace(2,"sp3 file open error %s\n",efiles[i]);
+            trace(1,"sp3 file open error %s\n",efiles[i]);
             continue;
         }
         /* read sp3 header */
@@ -400,7 +403,7 @@ extern int readsap(const char *file, gtime_t time, nav_t *nav)
     if (!readpcv(file,&pcvs,&pcvr)) return 0;
 
     for (i=0;i<MAXSAT;i++) {
-        pcv=searchspcv(i+1,"",time,&pcvs);
+        pcv=searchspcv(i+1,time,&pcvs);
         nav->spcvs[i]=pcv?*pcv:pcv0;
     }
     free(pcvs.pcv);
@@ -419,7 +422,7 @@ static int readdcbf(const char *file, nav_t *nav, const sta_t *sta)
     trace(3,"readdcbf: file=%s\n",file);
 
     if (!(fp=fopen(file,"r"))) {
-        trace(2,"dcb parameters file open error: %s\n",file);
+        trace(1,"GPS dcb file open error: %s\n",file);
         return 0;
     }
     while (fgets(buff,sizeof(buff),fp)) {
@@ -442,7 +445,7 @@ static int readdcbf(const char *file, nav_t *nav, const sta_t *sta)
             }
         }
         else if ((sat=satid2no(str1))) { /* satellite dcb */
-            nav->cbias[sat-1][type-1][0]=cbias*1E-9*CLIGHT; /* ns -> m */
+            nav->cbias[sat-1][type-1]=cbias*1E-9*CLIGHT; /* ns -> m */
         }
     }
     fclose(fp);
@@ -480,18 +483,18 @@ extern int code2bias_ix(int sys, int code) {
 /* read DCB parameters from BIA or BSX file ------------------------------------
 *    - supports satellite code biases only
 *-----------------------------------------------------------------------------*/
-static int readbiaf(const char *file, nav_t *nav)
+static int readbiaf(const prcopt_t *prcopt, const char *file, nav_t *nav)
 {
     FILE *fp;
     double cbias;
     char buff[256],bias[6]="",svn[6]="",prn[6]="",obs1[6]="",obs2[6],*Osbias;
     int i,id,sat,freq,code1,code2,bias_ix1,bias_ix2,sys,type;
-    double code_Dbias[MAXSTA][MAXCODE],gamma1;
+    double code_Dbias[MAXSTA][MAXCODE],gamma1,alpha,beta;
 
     trace(3,"readbiaf: file=%s\n",file);
 
     if (!(fp=fopen(file,"r"))) {
-        trace(2,"dcb parameters file open error: %s\n",file);
+        trace(1,"MEGX DCB file open error: %s\n",file);
         return 0;
     }
     if (!(Osbias=(char *)malloc(sizeof(char)*256))) {
@@ -570,72 +573,188 @@ static int readbiaf(const char *file, nav_t *nav)
     }
     /*convert DCB to OSB*/
     if (1==nav->obias_flag) {
-        for (i=1;i<MAXSTA;i++) {
+        for (i=1;i<=MAXSTA;i++) {
             sys=satsys(i,&id);
             /*ref:C1W-C2W*/
             if (sys==SYS_GPS) {
                 gamma1=SQR(FREQL1/FREQL2);
-                nav->obias[i-1][0]=(-1/(gamma1-1)*code_Dbias[i][8]+code_Dbias[i][0]); /* C1C -1/(gamma1-1)*(C1W-C2W)+C1C-C1W */
-                nav->obias[i-1][1]=(-1/(gamma1-1)*code_Dbias[i][8]); /* C1W -1/(gamma1-1)*(C1W-C2W) */
-                nav->obias[i-1][2]=(-gamma1/(gamma1-1)*code_Dbias[i][8]); /* C2W -gamma1/(gamma1-1)*(C1W-C2W) */
-                nav->obias[i-1][3]=(-gamma1/(gamma1-1)*code_Dbias[i][8]-code_Dbias[i][3]); /* C2L -gamma1/(gamma1-1)*(C1W-C2W)+C2L-C2W */
-                nav->obias[i-1][4]=(-gamma1/(gamma1-1)*code_Dbias[i][8]-code_Dbias[i][2]); /* C2S -gamma1/(gamma1-1)*(C1W-C2W)+C2S-C2W */
-                nav->obias[i-1][5]=(-gamma1/(gamma1-1)*code_Dbias[i][8]-code_Dbias[i][4]); /* C2X -gamma1/(gamma1-1)*(C1W-C2W)+C2X-C2W */
-                nav->obias[i-1][6]=-(gamma1/(gamma1-1)*(code_Dbias[i][6]-code_Dbias[i][0])-1/(gamma1-1)*(code_Dbias[i][6]-code_Dbias[i][5])); /* C5Q -(gamma1/(gamma1-1)*(C1W-C5Q)-1/(gamma1-1)*(C2W-C5Q)) */
-                nav->obias[i-1][7]=-(gamma1/(gamma1-1)*(code_Dbias[i][7]-code_Dbias[i][0])-1/(gamma1-1)*(code_Dbias[i][7]-code_Dbias[i][5])); /* C5X -(gamma1/(gamma1-1)*(C1W-C5X)-1/(gamma1-1)*(C2W-C5X)) */
-                nav->obias[i-1][8]=(-gamma1/(gamma1-1)*code_Dbias[i][8]+code_Dbias[i][1]); /* C2C -gamma1/(gamma1-1)*(C1W-C2W)+C2C-C2W */
+                alpha=gamma1/(gamma1-1);beta=-1/(gamma1-1);
+                nav->obias[i-1][0]=(beta*code_Dbias[i][8]+code_Dbias[i][0]);    /* C1C beta*(C1W-C2W)+C1C-C1W */
+                nav->obias[i-1][1]=(beta*code_Dbias[i][8]);                     /* C1W beta*(C1W-C2W) */
+                nav->obias[i-1][2]=(-alpha*code_Dbias[i][8]);                   /* C2W -alpha*(C1W-C2W) */
+                nav->obias[i-1][3]=(-alpha*code_Dbias[i][8]-code_Dbias[i][3]);  /* C2L -alpha*(C1W-C2W)+C2L-C2W */
+                nav->obias[i-1][4]=(-alpha*code_Dbias[i][8]-code_Dbias[i][2]);  /* C2S -alpha*(C1W-C2W)+C2S-C2W */
+                nav->obias[i-1][5]=(-alpha*code_Dbias[i][8]-code_Dbias[i][4]);  /* C2X -alpha*(C1W-C2W)+C2X-C2W */
+                nav->obias[i-1][6]=-(alpha*(code_Dbias[i][6]-code_Dbias[i][0])+beta*(code_Dbias[i][6]-code_Dbias[i][5])); /* C5Q -(alpha*(C1W-C5Q)+beta*(C2W-C5Q)) */
+                nav->obias[i-1][7]=-(alpha*(code_Dbias[i][7]-code_Dbias[i][0])+beta*(code_Dbias[i][7]-code_Dbias[i][5])); /* C5X -(alpha*(C1W-C5X)+beta*(C2W-C5X)) */
+                nav->obias[i-1][8]=(-alpha*code_Dbias[i][8]+code_Dbias[i][1]);  /* C2C -alpha*(C1W-C2W)+C2C-C2W */
             }
             /*ref:C1X-C5X*/
             if (sys==SYS_GAL) {
                 /*NOTE:C1C/C5Q/C6C/C7Q/C8Q is inaccurate correction*/
                 gamma1=SQR(FREQL1/FREQL5);
-                nav->obias[i-1][0]=(-1/(gamma1-1)*code_Dbias[i][4]); /* C1C -1/(gamma1-1)*(C1X-C5X)+C1C-C5X  miss C1C-C5X*/
-                nav->obias[i-1][1]=(-1/(gamma1-1)*code_Dbias[i][4]); /* C1X -1/(gamma1-1)*(C1X-C5X)*/
-                nav->obias[i-1][2]=(-gamma1/(gamma1-1)*code_Dbias[i][4]); /* C5Q -gamma1/(gamma1-1)*(C1X-C5X)+C5Q-C5X  miss C5Q-C5X*/
-                nav->obias[i-1][3]=(-gamma1/(gamma1-1)*code_Dbias[i][4]); /* C5X -gamma1/(gamma1-1)*(C1X-C5X)*/
-                nav->obias[i-1][4]=-(gamma1/(gamma1-1)*code_Dbias[i][1]-1/(gamma1-1)*(code_Dbias[i][1]-code_Dbias[i][4])); /* C6C -(gamma1/(gamma1-1)*(C1X-C6C)-1/(gamma1-1)*(C5X-C6C))*/
-                nav->obias[i-1][5]=-(gamma1/(gamma1-1)*code_Dbias[i][2]-1/(gamma1-1)*(code_Dbias[i][2]-code_Dbias[i][4])); /* C7Q -(gamma1/(gamma1-1)*(C1X-C7Q)-1/(gamma1-1)*(C5X-C7Q))*/
-                nav->obias[i-1][6]=-(gamma1/(gamma1-1)*code_Dbias[i][5]-1/(gamma1-1)*(code_Dbias[i][5]-code_Dbias[i][4])); /* C7X -(gamma1/(gamma1-1)*(C1X-C7X)-1/(gamma1-1)*(C5X-C7X))*/
-                nav->obias[i-1][7]=-(gamma1/(gamma1-1)*code_Dbias[i][3]-1/(gamma1-1)*(code_Dbias[i][3]-code_Dbias[i][4])); /* C8Q -(gamma1/(gamma1-1)*(C1X-C8Q)-1/(gamma1-1)*(C5X-C8Q))*/
-                nav->obias[i-1][8]=-(gamma1/(gamma1-1)*code_Dbias[i][6]-1/(gamma1-1)*(code_Dbias[i][6]-code_Dbias[i][4])); /* C8X -(gamma1/(gamma1-1)*(C1X-C8X)-1/(gamma1-1)*(C5X-C8X))*/
+                alpha=gamma1/(gamma1-1);beta=-1/(gamma1-1);
+                nav->obias[i-1][0]=(beta*code_Dbias[i][4]);                     /* C1C beta*(C1X-C5X)+C1C-C5X  miss C1C-C5X*/
+                nav->obias[i-1][1]=(beta*code_Dbias[i][4]);                     /* C1X beta*(C1X-C5X)*/
+                nav->obias[i-1][2]=(-alpha*code_Dbias[i][4]);                   /* C5Q -alpha*(C1X-C5X)+C5Q-C5X  miss C5Q-C5X*/
+                nav->obias[i-1][3]=(-alpha*code_Dbias[i][4]);                   /* C5X -alpha*(C1X-C5X)*/
+                nav->obias[i-1][4]=-(alpha*code_Dbias[i][1]+beta*(code_Dbias[i][1]-code_Dbias[i][4])); /* C6C -(alpha*(C1X-C6C)+beta*(C5X-C6C))*/
+                nav->obias[i-1][5]=-(alpha*code_Dbias[i][2]+beta*(code_Dbias[i][2]-code_Dbias[i][4])); /* C7Q -(alpha*(C1X-C7Q)+beta*(C5X-C7Q))*/
+                nav->obias[i-1][6]=-(alpha*code_Dbias[i][5]+beta*(code_Dbias[i][5]-code_Dbias[i][4])); /* C7X -(alpha*(C1X-C7X)+beta*(C5X-C7X))*/
+                nav->obias[i-1][7]=-(alpha*code_Dbias[i][3]+beta*(code_Dbias[i][3]-code_Dbias[i][4])); /* C8Q -(alpha*(C1X-C8Q)+beta*(C5X-C8Q))*/
+                nav->obias[i-1][8]=-(alpha*code_Dbias[i][6]+beta*(code_Dbias[i][6]-code_Dbias[i][4])); /* C8X -(alpha*(C1X-C8X)+beta*(C5X-C8X))*/
             }
-            /*ref:B3I,C6I*/
+            
             if (sys==SYS_CMP) {
-                if (id<=19) {
-                    nav->obias[i-1][0]=code_Dbias[i][1]; /* C2I C2I-C6I */
-                    nav->obias[i-1][1]=0;                 /* C6I */
-                    nav->obias[i-1][2]=(code_Dbias[i][1]-code_Dbias[i][0]); /* C7I C7I-C6I=(C2I-C6I)-(C2I-C7I) */ 
+                /*ref:B3I,C6I*/
+                if (EPHOPT_BRDC==prcopt->sateph) {
+                    if (id<19) {
+                        nav->obias[i-1][0]=code_Dbias[i][1]; /* C2I C2I-C6I */
+                        nav->obias[i-1][1]=0.0;                 /* C6I */
+                        nav->obias[i-1][2]=(code_Dbias[i][1]-code_Dbias[i][0]); /* C7I C7I-C6I=(C2I-C6I)-(C2I-C7I) */ 
+                    }
+                    else {
+                        nav->obias[i-1][0]=code_Dbias[i][1]; /* C2I C2I-C6I */
+                        nav->obias[i-1][1]=0.0;              /* C6I */
+                        nav->obias[i-1][2]=0.0;              /* no C7I  */ 
+                        nav->obias[i-1][3]=code_Dbias[i][6]; /* C1P C1P-C6I */ 
+                        nav->obias[i-1][4]=code_Dbias[i][5]; /* C1X C7I-C6I */ 
+                        nav->obias[i-1][5]=(code_Dbias[i][6]-code_Dbias[i][3]); /* C5P C5P-C6I=(C1P-C6I)-(C1P-C5P) */ 
+                        nav->obias[i-1][6]=(code_Dbias[i][5]-code_Dbias[i][2]); /* C5X C5X-C6I=(C1X-C6I)-(C1X-C5X) */ 
+                        nav->obias[i-1][7]=(code_Dbias[i][5]-code_Dbias[i][8]); /* C7Z C7Z-C6I=(C1X-C6I)-(C1X-C7Z) */ 
+                        nav->obias[i-1][8]=(code_Dbias[i][5]-code_Dbias[i][9]); /* C8X C8X-C6I=(C1X-C6I)-(C1X-C8X) */
+                        nav->obias[i-1][9]=code_Dbias[i][7]; /* C1D C1D-C6I */ 
+                        nav->obias[i-1][10]=(code_Dbias[i][7]-code_Dbias[i][4]); /* C5D C5D-C6I=(C1D-C6I)-(C1D-C5D) */ 
+                    }                    
                 }
-                else {
-                    nav->obias[i-1][0]=code_Dbias[i][1]; /* C2I C2I-C6I */
-                    nav->obias[i-1][1]=0;                 /* C6I */
-                    nav->obias[i-1][2]=(code_Dbias[i][1]-code_Dbias[i][0]); /* C7I C7I-C6I=(C2I-C6I)-(C2I-C7I) */ 
-                    nav->obias[i-1][3]=code_Dbias[i][6]; /* C1P C1P-C6I */ 
-                    nav->obias[i-1][4]=code_Dbias[i][5]; /* C1X C7I-C6I */ 
-                    nav->obias[i-1][5]=(code_Dbias[i][6]-code_Dbias[i][3]); /* C5P C5P-C6I=(C1P-C6I)-(C1P-C5P) */ 
-                    nav->obias[i-1][6]=(code_Dbias[i][5]-code_Dbias[i][2]); /* C5X C5X-C6I=(C1X-C6I)-(C1X-C5X) */ 
-                    nav->obias[i-1][7]=(code_Dbias[i][5]-code_Dbias[i][8]); /* C7Z C7Z-C6I=(C1X-C6I)-(C1X-C7Z) */ 
-                    nav->obias[i-1][8]=(code_Dbias[i][5]-code_Dbias[i][9]); /* C8X C8X-C6I=(C1X-C6I)-(C1X-C8X) */
-                    nav->obias[i-1][9]=code_Dbias[i][7]; /* C1D C1D-C6I */ 
-                    nav->obias[i-1][10]=(code_Dbias[i][7]-code_Dbias[i][4]); /* C5D C5D-C6I=(C1D-C6I)-(C1D-C5D) */ 
+                /*ref:C2I-C6I*/
+                else if (EPHOPT_PREC==prcopt->sateph) {
+                    gamma1=SQR(FREQ1_CMP/FREQ3_CMP);
+                    alpha=gamma1/(gamma1-1);beta=-1/(gamma1-1);                    
+                    if (id<19) {
+                        nav->obias[i-1][0]=beta*code_Dbias[i][1];       /* C2I beta*(C2I-C6I) */
+                        nav->obias[i-1][1]=-alpha*code_Dbias[i][1];     /* C6I -alpha*(C2I-C6I)*/
+                        nav->obias[i-1][2]=-(alpha*code_Dbias[i][0]+beta*(code_Dbias[i][0]-code_Dbias[i][1]));     /* C7I -(alpha*(C2I-C7I)+beta*(C6I-C7I)) */ 
+                    }
+                    else {
+                        nav->obias[i-1][0]=beta*code_Dbias[i][1];       /* C2I beta*(C2I-C6I) */
+                        nav->obias[i-1][1]=-alpha*code_Dbias[i][1];     /* C6I -alpha*(C2I-C6I)*/
+                        nav->obias[i-1][2]=0;                           /* no C7I  */ 
+                        nav->obias[i-1][3]=-(alpha*(code_Dbias[i][1]-code_Dbias[i][6])-beta*code_Dbias[i][6]); /* C1P  -(alpha*(C2I-C1P)+beta*(C6I-C1P))*/ 
+                        nav->obias[i-1][4]=-(alpha*(code_Dbias[i][1]-code_Dbias[i][5])-beta*code_Dbias[i][5]); /* C1X  -(alpha*(C2I-C1X)+beta*(C6I-C1X))*/ 
+                        nav->obias[i-1][5]=-(alpha*(code_Dbias[i][1]-code_Dbias[i][6]+code_Dbias[i][3])+beta*(code_Dbias[i][3]-code_Dbias[i][6])); /* C5P -(alpha*(C2I-C5P)+beta*(C6I-C5P))*/ 
+                        nav->obias[i-1][6]=-(alpha*(code_Dbias[i][1]-code_Dbias[i][5]+code_Dbias[i][2])+beta*(code_Dbias[i][2]-code_Dbias[i][5]));  /* C5X -(alpha*(C2I-C5X)+beta*(C6I-C5X))*/ 
+                        nav->obias[i-1][7]=-(alpha*(code_Dbias[i][1]-code_Dbias[i][5]+code_Dbias[i][8])+beta*(code_Dbias[i][8]-code_Dbias[i][5])); /* C7Z -(alpha*(C2I-C7Z)+beta*(C6I-C7Z))*/ 
+                        nav->obias[i-1][8]=-(alpha*(code_Dbias[i][1]-code_Dbias[i][5]+code_Dbias[i][9])+beta*(code_Dbias[i][9]-code_Dbias[i][5])); /* C8X -(alpha*(C2I-C8X)+beta*(C6I-C8X))*/
+                        nav->obias[i-1][9]=-(alpha*(code_Dbias[i][1]-code_Dbias[i][7])-beta*code_Dbias[i][7]); /* C1D -(alpha*(C2I-C1D)+beta*(C6I-C1D))*/ 
+                        nav->obias[i-1][10]=-(alpha*(code_Dbias[i][1]-code_Dbias[i][7]+code_Dbias[i][4])+beta*(code_Dbias[i][4]-code_Dbias[i][7])); /* C5D -(alpha*(C2I-C5D)+beta*(C6I-C5D))*/ 
+                    }                      
                 }
                 
             }
             /*ref:C1C-C2X?*/
             if (sys==SYS_QZS) {
                 gamma1=SQR(FREQL1/FREQL2);
-                nav->obias[i-1][0]=(-1/(gamma1-1)*(code_Dbias[i][0]+code_Dbias[i][4])); /* C1C -1/(gamma1-1)*(C1C-C2X) */
-                nav->obias[i-1][1]=(-1/(gamma1-1)*(code_Dbias[i][0]+code_Dbias[i][4])-code_Dbias[i][0]); /* C1X -1/(gamma1-1)*(C1C-C2X)+C1X-C1C */
-                nav->obias[i-1][2]=(-gamma1/(gamma1-1)*(code_Dbias[i][0]+code_Dbias[i][4])-(code_Dbias[i][0]-code_Dbias[i][1]+code_Dbias[i][4])); /* C2L -gamma1/(gamma1-1)*(C1C-C2X)+C2L-C2X */
-                nav->obias[i-1][3]=-(gamma1/(gamma1-1)*(code_Dbias[i][0]+code_Dbias[i][4])); /* C2X -gamma1/(gamma1-1)*(C1C-C2X) */
-                nav->obias[i-1][4]=-(gamma1/(gamma1-1)*code_Dbias[i][3]-1/(gamma1-1)*(code_Dbias[i][3]-code_Dbias[i][0]-code_Dbias[i][4])); /* C5Q -(gamma1/(gamma1-1)*(C1C-C5Q)-1/(gamma1-1)*(C2X-C5Q)) */
-                nav->obias[i-1][5]=-(1/(gamma1-1)*(code_Dbias[i][0]+code_Dbias[i][5])-1/(gamma1-1)*(code_Dbias[i][5]-code_Dbias[i][4])); /* C5X -(gamma1/(gamma1-1)*(C1C-C5X)-1/(gamma1-1)*(C2X-C5X)) */
+                alpha=gamma1/(gamma1-1);beta=-1/(gamma1-1);
+                nav->obias[i-1][0]=(beta*(code_Dbias[i][0]+code_Dbias[i][4]));                  /* C1C beta*(C1C-C2X) */
+                nav->obias[i-1][1]=(beta*(code_Dbias[i][0]+code_Dbias[i][4])-code_Dbias[i][0]); /* C1X beta*(C1C-C2X)+C1X-C1C */
+                nav->obias[i-1][2]=(-alpha*(code_Dbias[i][0]+code_Dbias[i][4])-(code_Dbias[i][0]-code_Dbias[i][1]+code_Dbias[i][4])); /* C2L -alpha*(C1C-C2X)+C2L-C2X */
+                nav->obias[i-1][3]=-(alpha*(code_Dbias[i][0]+code_Dbias[i][4]));                /* C2X -alpha*(C1C-C2X) */
+                nav->obias[i-1][4]=-(alpha*code_Dbias[i][3]+beta*(code_Dbias[i][3]-code_Dbias[i][0]-code_Dbias[i][4]));     /* C5Q -(alpha*(C1C-C5Q)beta*(C2X-C5Q)) */
+                nav->obias[i-1][5]=-(alpha*(code_Dbias[i][0]+code_Dbias[i][5])+beta*(code_Dbias[i][5]-code_Dbias[i][4]));   /* C5X -(alpha*(C1C-C5X)beta*(C2X-C5X)) */
             }
         }
     }
     fclose(fp);
 
     return 1;
+}
+/* store tgd corrections to nav->obias*/
+extern int tgdarrge(const prcopt_t *opt, nav_t *nav) 
+{   
+    int i,sys,id;
+    double gamma1,alpha,beta,b1,b2;
+
+    /* if has DCB file, using DCB correction*/
+    if (nav->obias_flag>0) {
+        return 0;
+    }
+
+    /* if no DCB and OSB file, using TGD correction*/
+    if (0==nav->obias_flag) {
+        nav->obias_flag=3;
+        for (i=1;i<=MAXSTA;i++) {
+            sys=satsys(i,&id);
+            /*ref:C1W-C2W*/
+            if (sys==SYS_GPS) {
+                b1=gettgd(i,nav,0); /*DCB beta*(C1-C2)*/
+                gamma1=SQR(FREQL1/FREQL2);
+                nav->obias[i-1][0]=b1;                     /* C1C beta*(C1-C2) */
+                nav->obias[i-1][1]=b1;                     /* C1W beta*(C1-C2) */
+                nav->obias[i-1][2]=gamma1*b1;              /* C2W -alpha*(C1-C2) */
+                nav->obias[i-1][3]=gamma1*b1;;             /* C2L -alpha*(C1-C2) */
+                nav->obias[i-1][4]=gamma1*b1;;             /* C2S -alpha*(C1-C2) */
+                nav->obias[i-1][5]=gamma1*b1;;             /* C2X -alpha*(C1-C2) */
+                nav->obias[i-1][8]=gamma1*b1;;             /* C2C -alpha*(C1-C2) */
+            }
+            /*ref:C1X-C5X*/
+            if (sys==SYS_GAL) {
+                b1=gettgd(i,nav,0);  /*DCB beta*(C1-C5)*/
+                b2=gettgd(i,nav,1);  /*DCB beta*(C1-C7)*/
+                gamma1=SQR(FREQL1/FREQL5);
+                alpha=gamma1/(gamma1-1);beta=-1/(gamma1-1);
+                nav->obias[i-1][0]=b1;                          /* C1C beta*(C1-C5) */
+                nav->obias[i-1][1]=b1;                          /* C1X beta*(C1-C5) */
+                nav->obias[i-1][2]=gamma1*b1;                   /* C5Q -alpha*(C1-C5) */
+                nav->obias[i-1][3]=gamma1*b1;                   /* C5X -alpha*(C1-C5)*/
+                nav->obias[i-1][5]=-(alpha*b2+beta*(b2-b1));    /* C7Q -(alpha*(C1-C7)+beta*(C5-C7))*/
+                nav->obias[i-1][6]=-(alpha*b2+beta*(b2-b1));    /* C7X -(alpha*(C1-C7)+beta*(C5-C7))*/
+            }
+            if (sys==SYS_CMP) {
+                b1=gettgd(i,nav,0); /*DCB C2I-C6I*/
+                b2=gettgd(i,nav,1); /*DCB C7I-C6I*/
+                /*ref:B3I,C6I*/
+                if (EPHOPT_BRDC==opt->sateph) {
+                    if (id<19) {
+                        nav->obias[i-1][0]=b1;      /* C2I C2I-C6I */
+                        nav->obias[i-1][1]=0.0;     /* C6I */
+                        nav->obias[i-1][2]=b2;      /* C7I C7I-C6I=(C2I-C6I)-(C2I-C7I) */ 
+                    }
+                    else {
+                        nav->obias[i-1][0]=b1;      /* C2I C2I-C6I */
+                        nav->obias[i-1][1]=0.0;     /* C6I */
+                        nav->obias[i-1][2]=0.0;     /* no C7I  */  
+                    }                    
+                }
+                /*ref:C2I-C6I*/
+                else if (EPHOPT_PREC==opt->sateph) {
+                    gamma1=SQR(FREQ1_CMP/FREQ3_CMP);
+                    alpha=gamma1/(gamma1-1);beta=-1/(gamma1-1);                    
+                    if (id<19) {
+                        nav->obias[i-1][0]=beta*b1;                     /* C2I beta*(C2I-C6I) */
+                        nav->obias[i-1][1]=-alpha*b1;                   /* C6I -alpha*(C2I-C6I)*/
+                        nav->obias[i-1][2]=-(alpha*(b1-b2)-beta*b2);    /* C7I -(alpha*(C2I-C7I)+beta*(C6I-C7I)) */ 
+                    }
+                    else {
+                        nav->obias[i-1][0]=beta*b1;                     /* C2I beta*(C2I-C6I) */
+                        nav->obias[i-1][1]=-alpha*b1;                   /* C6I -alpha*(C2I-C6I)*/
+                        nav->obias[i-1][2]=0.0;                         /* no C7I  */ 
+                    }                      
+                }
+            }
+            /*ref:C1C-C2X?*/
+            if (sys==SYS_QZS) {
+                b1=gettgd(i,nav,0);     /*DCB C2-C2*/
+                gamma1=SQR(FREQL1/FREQL2);
+                nav->obias[i-1][0]=b1;                  /* C1C beta*(C1-C2) */
+                nav->obias[i-1][1]=b1;                  /* C1X beta*(C1-C2) */
+                nav->obias[i-1][2]=gamma1*b1;           /* C2L -alpha*(C1-C2) */
+                nav->obias[i-1][3]=gamma1*b1;           /* C2X -alpha*(C1-C2) */
+            }
+        }
+        return 1;
+    }
+ 
 }
 /* read DCB parameters ---------------------------------------------------------
 * read differential code bias (DCB) parameters
@@ -648,21 +767,14 @@ static int readbiaf(const char *file, nav_t *nav)
          : currently only support P1-P2, P1-C1 bias in DCB file
          : currently only supports satellite biases in BIA/BSX files
 *-----------------------------------------------------------------------------*/
-extern int readdcb(const char *file, nav_t *nav, const sta_t *sta)
+extern int readdcb(const prcopt_t *prcopt, const char *file, nav_t *nav, const sta_t *sta)
 {
     int i,j,k,n,dcb_ok=0;
     char *efiles[MAXEXFILE]={0};
 
     trace(3,"readdcb : file=%s\n",file);
 
-    init_bias_ix(); /* init translation table from code to table column */
-
-    for (i=0;i<MAXSAT;i++) for (j=0;j<MAX_CODE_BIAS_FREQS;j++) for (k=0;k<MAX_CODE_BIASES;k++) {
-        nav->cbias[i][j][k]=0.0;
-    }
-    for (j=0;j<MAXSTA;j++) for (k=0;k<MAXCODE;k++) {
-        nav->obias[j][k]=0.0;
-    } 
+    init_bias_ix(); /* init translation table from code to table column */ 
         
     for (i=0;i<MAXEXFILE;i++) {
         if (!(efiles[i]=(char *)malloc(1024))) {
@@ -675,7 +787,7 @@ extern int readdcb(const char *file, nav_t *nav, const sta_t *sta)
     for (i=0;i<n;i++) {
         if (strstr(efiles[i],".BIA")||strstr(efiles[i],".bia")||
             strstr(efiles[i],".BSX")||strstr(efiles[i],".bsx"))
-            dcb_ok=readbiaf(efiles[i],nav);
+            dcb_ok=readbiaf(prcopt,efiles[i],nav);
         else if (strstr(efiles[i],".DCB")||strstr(efiles[i],".dcb"))
             dcb_ok=readdcbf(efiles[i],nav,sta);
     }
@@ -702,14 +814,14 @@ static int pephpos(gtime_t time, int sat, const nav_t *nav, double *rs,
     double t[NMAX+1],p[3][NMAX+1],c[2],*pos,std=0.0,s[3],sinl,cosl;
     int i,j,k,index;
 
-    trace(4,"pephpos : time=%s sat=%2d\n",time_str(time,3),sat);
+    trace(3,"pephpos : time=%s sat=%2d\n",time_str(time,3),sat);
 
     rs[0]=rs[1]=rs[2]=dts[0]=0.0;
 
     if (nav->ne<NMAX+1||
         timediff(time,nav->peph[0].time)<-MAXDTE||
         timediff(time,nav->peph[nav->ne-1].time)>MAXDTE) {
-        trace(3,"no prec ephem %s sat=%2d\n",time_str(time,0),sat);
+        trace(2,"no prec ephem %s sat=%2d\n",time_str(time,0),sat);
         return 0;
     }
     /* binary search */
@@ -726,7 +838,7 @@ static int pephpos(gtime_t time, int sat, const nav_t *nav, double *rs,
     for (j=0;j<=NMAX;j++) {
         t[j]=timediff(nav->peph[i+j].time,time);
         if (norm(nav->peph[i+j].pos[sat-1],3)<=0.0) {
-            trace(3,"prec ephem outage %s sat=%2d\n",time_str(time,0),sat);
+            trace(2,"prec ephem outage %s sat=%2d\n",time_str(time,0),sat);
             return 0;
         }
     }
@@ -785,12 +897,12 @@ extern int pephclk(gtime_t time, int sat, const nav_t *nav, double *dts,
     double t[2],c[2],std;
     int i,j,k,index;
 
-    trace(4,"pephclk : time=%s sat=%2d\n",time_str(time,3),sat);
+    trace(3,"pephclk : time=%s sat=%2d\n",time_str(time,3),sat);
 
     if (nav->nc<2||
         timediff(time,nav->pclk[0].time)<-MAXDTE||
         timediff(time,nav->pclk[nav->nc-1].time)>MAXDTE) {
-        trace(3,"no prec clock %s sat=%2d\n",time_str(time,0),sat);
+        trace(2,"no prec clock %s sat=%2d\n",time_str(time,0),sat);
         return 1;
     }
     /* binary search */
@@ -820,7 +932,7 @@ extern int pephclk(gtime_t time, int sat, const nav_t *nav, double *dts,
         std=nav->pclk[index+i].std[sat-1][0]*CLIGHT+EXTERR_CLK*fabs(t[i]);
     }
     else {
-        trace(3,"prec clock outage %s sat=%2d\n",time_str(time,0),sat);
+        trace(2,"prec clock outage %s sat=%2d\n",time_str(time,0),sat);
         return 0;
     }
     if (varc) *varc=SQR(std);
@@ -851,7 +963,7 @@ extern void satantoff(gtime_t time, const double *rs, int sat, const nav_t *nav,
     double C1,C2,dant1,dant2;
     int i,sys,j,k;
 
-    trace(4,"satantoff: time=%s sat=%2d\n",time_str(time,3),sat);
+    trace(3,"satantoff: time=%s sat=%2d\n",time_str(time,3),sat);
 
     dant[0]=dant[1]=dant[2]=0.0;
 
@@ -935,7 +1047,7 @@ extern int peph2pos(gtime_t time, int sat, const nav_t *nav, int opt,
     double rss[3],rst[3],dtss[1],dtst[1],dant[3]={0},vare=0.0,varc=0.0,tt=1E-3;
     int i;
 
-    trace(4,"peph2pos: time=%s sat=%2d opt=%d\n",time_str(time,3),sat,opt);
+    trace(3,"peph2pos: time=%s sat=%2d opt=%d\n",time_str(time,3),sat,opt);
 
     if (sat<=0||MAXSAT<sat) return 0;
 

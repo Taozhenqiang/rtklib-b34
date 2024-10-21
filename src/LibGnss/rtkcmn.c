@@ -199,6 +199,13 @@ const double chisqr[100]={/* chi-sqr(n) (alpha=0.001) */
                            113,114,115,116,118,119,120,122,123,125,
                            126,127,128,129,131,132,133,134,135,137,
                            138,139,140,142,143,144,145,147,148,149};
+Debug_Glo_t Debug_Glo={
+    {0},
+    {0},
+    0,
+    0,
+    {""},
+};                      
 const prcopt_t prcopt_default={
     /* defaults processing options */
     PMODE_KINEMA,
@@ -207,23 +214,24 @@ const prcopt_t prcopt_default={
     {{0,1,2,3,4,5,6},
      {0,1,2,3,4,5,6},
      {0,1,2,3,4,5,6},
-     {0,1,2,3,4,5,6},
-     {0,2,3,4,5,1,6}},/* idx of frequencies
+     {0,2,3,4,5,1,6},
+     {0,1,2,3,4,5,6}},/* idx of frequencies
                        GPS: 0-L1;1-L2;2-L5
                        GLONASS: 0-G1/G1a;1-G2/G2a;2-G3
                        Galileo: 0-E1;1-E5b;2-E5a;3-E6;4-E5a+E5b;
-                       QZSS: 0-L1;1-L2;2-L5;3-LEX;
-                       BeiDou: 0-B1I;1-B2I;2-B3I;3-B1C;4-B2a,5-B2b,6-B2ab*/
+                       BeiDou: 0-B1I;1-B2I;2-B3I;3-B1C;4-B2a,5-B2b,6-B2ab
+                       QZSS: 0-L1;1-L2;2-L5;3-LEX;*/
     {1,0},
     SYS_GPS | SYS_GLO | SYS_GAL,/* navsys */
     15.0*D2R,
     {{0,0}},/* elmin,snrmask */
     0,
+    1,
     3,
     3,
     1,
     0,
-    1,/* sateph,modear,glomodear,gpsmodear,bdsmodear,arfilter */
+    1,/* sateph,artype,modear,glomodear,gpsmodear,bdsmodear,arfilter */
     20,
     0,
     4,
@@ -311,6 +319,14 @@ const char *formatstrs[32]={                        /* stream format strings */
                              "NMEA 0183",           /* 19 */
                              NULL};
 
+static char sysfre[NSYS][NFREQ][5]={
+
+    {"L1","L2","L5"},                               /* GPS */
+    {"G1","G2","G3"},                               /* GLONASS */
+    {"E1","E5b","E5a","E6","E5ab"},                 /* Gelileo */
+    {"B1I","B2I","B3I","B1C","B2a","B2b","B2ab"},    /* BDS */    
+    {"L1","L2","L5","LEX"}                         /* QZSS */
+};
 static char *obscodes[]={
     /* observation code strings */
 
@@ -331,8 +347,8 @@ static char codepris[7][MAXFREQ][16]={
     {"CLSXZ","LSX","IQXDPZ","LSXEZ","",""},          /* QZS */
     {"C","IQX","","","",""},                         /* SBS */
     /* {"IQXDPAN","IQXDPZ","DPX","IQXA","DPX",""},*/ /* BDS */
-    {"IQX","IQX","IQX","DPX","DPX","DPZ","DPX"},    /* BDS */
-    {"ABCX","ABCX","","","",""}                       /* IRN */
+    {"IQX","IQX","IQX","DPX","DPX","DPZ","DPX"},     /* BDS */
+    {"ABCX","ABCX","","","",""}                      /* IRN */
 };
 static fatalfunc_t *fatalfunc=NULL;/* fatal callback function */
 
@@ -453,7 +469,6 @@ extern void add_fatal(fatalfunc_t *func) {
 *         int        t1   I   target second
 *         int        t2   I   target week
 *return : none
-*notes  : if malloc() failed in return : none
  *-----------------------------------------------------------------------------*/
 extern void DebugTime(gtime_t t,int t1,int t2) {
     int week,flag;
@@ -474,36 +489,36 @@ extern int satno(int sys,int prn) {
         return 0;
     switch (sys) {
     case SYS_GPS:
-        if (prn<MINPRNGPS || MAXPRNGPS<prn)
+        if (prn<MINPRNGPS||MAXPRNGPS<prn)
             return 0;
         return prn-MINPRNGPS+1;
     case SYS_GLO:
-        if (prn<MINPRNGLO || MAXPRNGLO<prn)
+        if (prn<MINPRNGLO||MAXPRNGLO<prn)
             return 0;
         return NSATGPS+prn-MINPRNGLO+1;
     case SYS_GAL:
-        if (prn<MINPRNGAL || MAXPRNGAL<prn)
+        if (prn<MINPRNGAL||MAXPRNGAL<prn)
             return 0;
         return NSATGPS+NSATGLO+prn-MINPRNGAL+1;
     case SYS_QZS:
-        if (prn<MINPRNQZS || MAXPRNQZS<prn)
+        if (prn<MINPRNQZS||MAXPRNQZS<prn)
             return 0;
         return NSATGPS+NSATGLO+NSATGAL+prn-MINPRNQZS+1;
     case SYS_CMP:
-        if (prn<MINPRNCMP || MAXPRNCMP<prn)
+        if (prn<MINPRNCMP||MAXPRNCMP<prn)
             return 0;
         return NSATGPS+NSATGLO+NSATGAL+NSATQZS+prn-MINPRNCMP+1;
     case SYS_IRN:
-        if (prn<MINPRNIRN || MAXPRNIRN<prn)
+        if (prn<MINPRNIRN||MAXPRNIRN<prn)
             return 0;
         return NSATGPS+NSATGLO+NSATGAL+NSATQZS+NSATCMP+prn-MINPRNIRN+1;
     case SYS_LEO:
-        if (prn<MINPRNLEO || MAXPRNLEO<prn)
+        if (prn<MINPRNLEO||MAXPRNLEO<prn)
             return 0;
         return NSATGPS+NSATGLO+NSATGAL+NSATQZS+NSATCMP+NSATIRN +
                prn-MINPRNLEO+1;
     case SYS_SBS:
-        if (prn<MINPRNSBS || MAXPRNSBS<prn)
+        if (prn<MINPRNSBS||MAXPRNSBS<prn)
             return 0;
         return NSATGPS+NSATGLO+NSATGAL+NSATQZS+NSATCMP+NSATIRN+NSATLEO +
                prn-MINPRNSBS+1;
@@ -517,19 +532,49 @@ extern int satno(int sys,int prn) {
 *         const  *opt      I   Configuration structure
 *return : user-defined signal frequency index (1,3,4...)
  *-----------------------------------------------------------------------------*/
-extern int sys2freid(int sys,int ix,const prcopt_t *opt) {
+extern int sys2freid(int sys, int ix, const prcopt_t *opt) {
     if (sys==SYS_GPS)
         return opt->fre[0][ix];
     else if (sys==SYS_GLO)
         return opt->fre[1][ix];
     else if (sys==SYS_GAL)
         return opt->fre[2][ix];
-    else if (sys==SYS_QZS)
-        return opt->fre[3][ix];
     else if (sys==SYS_CMP)
+        return opt->fre[3][ix];        
+    else if (sys==SYS_QZS)
         return opt->fre[4][ix];
     else
         return ix;
+}
+/* satellite system to signal frequency char ----------------------------------------
+*Get the user-defined signal frequency index
+*args   : int    sys       I   satellite system
+*         int     ix       I   nominal index
+*         char   *id       O   frequency id (B1I/B1C)
+ *-----------------------------------------------------------------------------*/
+extern void sys2frech(int sys, int ix, char *id) {
+
+    if (sys==SYS_GPS) {
+        strcpy(id,sysfre[0][ix]);
+        return ;       
+    }
+    else if (sys==SYS_GLO) {
+        strcpy(id,sysfre[1][ix]);
+        return ;          
+    }
+    else if (sys==SYS_GAL) {
+        strcpy(id,sysfre[2][ix]);
+        return ;          
+    }
+    else if (sys==SYS_CMP) {
+        strcpy(id,sysfre[3][ix]);
+        return ;          
+    }    
+    else if (sys==SYS_QZS) {
+        strcpy(id,sysfre[4][ix]);
+        return ;          
+    }
+    strcpy(id,"");
 }
 /* satellite number to satellite system ----------------------------------------
 *convert satellite number to satellite system
@@ -539,7 +584,7 @@ extern int sys2freid(int sys,int ix,const prcopt_t *opt) {
  *-----------------------------------------------------------------------------*/
 extern int satsys(int sat,int *prn) {
     int sys=SYS_NONE;
-    if (sat <=0 || MAXSAT<sat)
+    if (sat <=0||MAXSAT<sat)
         sat=0;
     else if (sat <=NSATGPS) {
         sys=SYS_GPS;
@@ -717,7 +762,7 @@ extern int testsnr(int base,int idx,double el,double snr,
     double minsnr,a;
     int i;
 
-    if (!mask->ena[base] || idx<0 || idx >=NFREQ)
+    if (!mask->ena[base]||idx<0||idx>=NFREQ)
         return 0;
 
     a=(el*R2D+5.0) / 10.0;
@@ -755,7 +800,7 @@ extern uint8_t obs2code(const char *obs) {
 *notes  : obs codes are based on RINEX 3.04
  *-----------------------------------------------------------------------------*/
 extern char *code2obs(uint8_t code) {
-    if (code <=CODE_NONE || MAXCODE<code)
+    if (code <=CODE_NONE||MAXCODE<code)
         return "";
     return obscodes[code];
 }
@@ -780,7 +825,7 @@ static int code2freq_GPS(uint8_t code,double *freq) {
 static int code2freq_GLO(uint8_t code,int fcn,double *freq) {
     char *obs=code2obs(code);
 
-    if (fcn<-7 || fcn>6)
+    if (fcn<-7||fcn>6)
         return -1;
 
     switch (obs[0]) {
@@ -1037,7 +1082,7 @@ extern double sat2freq(int sat,uint8_t code,const nav_t *nav) {
 extern void setcodepri(int sys,int idx,const char *pri) {
     trace(3,"setcodepri:sys=%d idx=%d pri=%s\n",sys,idx,pri);
 
-    if (idx<0 || idx >=MAXFREQ)
+    if (idx<0||idx >=MAXFREQ)
         return;
     if (sys & SYS_GPS)
         strcpy(codepris[0][idx],pri);
@@ -1104,7 +1149,7 @@ extern int getcodepri(int sys,uint8_t code,const char *opt) {
 
     /* parse code options */
     for (p=opt;p&&(p=strchr(p,'-'));p++) {
-        if (sscanf(p,optstr,str)<1 || str[0] !=obs[0])
+        if (sscanf(p,optstr,str)<1||str[0] !=obs[0])
             continue;
         return str[1]==obs[1] ? 15 : 0;
     }
@@ -1127,7 +1172,7 @@ extern uint32_t getbitu(const uint8_t *buff,int pos,int len) {
 }
 extern int32_t getbits(const uint8_t *buff,int pos,int len) {
     uint32_t bits=getbitu(buff,pos,len);
-    if (len <=0 || 32 <=len || !(bits & (1u << (len-1))))
+    if (len <=0||32 <=len||!(bits & (1u << (len-1))))
         return (int32_t) bits;
     return (int32_t)(bits | (~0u << len));/* extend sign */
 }
@@ -1142,7 +1187,7 @@ extern int32_t getbits(const uint8_t *buff,int pos,int len) {
 extern void setbitu(uint8_t *buff,int pos,int len,uint32_t data) {
     uint32_t mask=1u << (len-1);
     int i;
-    if (len <=0 || 32<len)
+    if (len <=0||32<len)
         return;
     for (i=pos;i<pos+len;i++,mask>>=1) {
         if (data & mask)
@@ -1257,7 +1302,7 @@ extern int decode_word(uint32_t word,uint8_t *data) {
 extern double *mat(int n,int m) {
     double *p;
 
-    if (n <=0 || m <=0)
+    if (n <=0||m <=0)
         return NULL;
     if (!(p=(double *) malloc(sizeof(double)*n*m))) {
         fatalerr("matrix memory allocation error: n=%d,m=%d\n",n,m);
@@ -1272,7 +1317,7 @@ extern double *mat(int n,int m) {
 extern int *imat(int n,int m) {
     int *p;
 
-    if (n <=0 || m <=0)
+    if (n <=0||m <=0)
         return NULL;
     if (!(p=(int *) malloc(sizeof(int)*n*m))) {
         fatalerr("integer matrix memory allocation error: n=%d,m=%d\n",n,m);
@@ -1292,7 +1337,7 @@ extern double *zeros(int n,int m) {
         for (n=n*m-1;n >=0;n--)
             p[n]=0.0;
 #else
-    if (n <=0 || m <=0)
+    if (n <=0||m <=0)
         return NULL;
     if (!(p=(double *) calloc(sizeof(double),n*m))) {
         fatalerr("matrix memory allocation error: n=%d,m=%d\n",n,m);
@@ -1349,7 +1394,7 @@ extern double dot(const double *a,const double *b,int n) {
 *euclid norm of vector
 *args   : double *a        I   vector a (n x 1)
 *         int    n         I   size of vector a
-*return : || a ||
+*return :||a ||
  *-----------------------------------------------------------------------------*/
 extern double norm(const double *a,int n) {
     return sqrt(dot(a,a,n));
@@ -1368,7 +1413,7 @@ extern void cross3(const double *a,const double *b,double *c) {
 /* normalize 3d vector ---------------------------------------------------------
 *normalize 3d vector
 *args   : double *a        I   vector a (3 x 1)
-*         double *b        O   normalized vector (3 x 1) || b || =1
+*         double *b        O   normalized vector (3 x 1)||b||=1
 *return : status (1:ok,0:error)
  *-----------------------------------------------------------------------------*/
 extern int normv3(const double *a,double *b) {
@@ -1752,19 +1797,28 @@ extern int solve(const char *tr,const double *A,const double *Y,int n,
 *notes  : for weighted least square,replace A and y by A*w and w*y (w=W^(1/2))
 *         matrix stored by column-major order (fortran convention)
  *-----------------------------------------------------------------------------*/
-extern int lsq(const double *A,const double *y,int n,int m,double *x,
+extern int lsq(const double *A, const double *y, int n, int m, double *x, 
                double *Q) {
     double *Ay;
     int info;
 
-    if (m<n)
-        return -1;
+    if (m<n) {
+        trace(7,"spp lsq error! The number of observations is less than the number of parameters to be estimated.\n");
+        return -1;        
+    }
     Ay=mat(n,1);
+
+    /* lsq*/
     matmul("NN",n,1,m,A,y,Ay);/* Ay=A*y */
     matmul("NT",n,n,m,A,A,Q); /* Q=A*A' */
-    if (!(info=matinv(Q,n)))
+    /* trace(12,"L=\n"); tracemat(12,Ay,n,1,9,4);
+    trace(12,"Q=\n"); tracemat(12,Q,n,n,9,4); */
+    if (!(info=matinv(Q,n))) {
         matmul("NN",n,1,n,Q,Ay,x);/* x=Q^-1*Ay */
-    free(Ay);
+    }
+    else {trace(7,"spp lsq error! measurement matrix rank deficiency.\n");}
+        
+    free(Ay);;
     return info;
 }
 /* kalman filter ---------------------------------------------------------------
@@ -1813,14 +1867,12 @@ extern int filter(double *x,double *P,const double *H,const double *v,
 
     /* create list of non-zero states */
     ix=imat(n,1);
-    for (i=k=0;i<n;i++)
+    for (i=k=0;i<n;i++) {
         if (x[i]!=0.0&&P[i+i*n]>0.0)
-            ix[k++]=i;
-    x_=mat(k,1);
-    xp_=mat(k,1);
-    P_=mat(k,k);
-    Pp_=mat(k,k);
-    H_=mat(k,m);
+            ix[k++]=i;        
+    }
+
+    x_=mat(k,1); xp_=mat(k,1); P_=mat(k,k); Pp_=mat(k,k); H_=mat(k,m);
     /* compress array by removing zero elements to save computation time */
     for (i=0;i<k;i++) {
         x_[i]=x[ix[i]];
@@ -1837,12 +1889,7 @@ extern int filter(double *x,double *P,const double *H,const double *v,
         for (j=0;j<k;j++)
             P[ix[i]+ix[j]*n]=Pp_[i+j*k];
     }
-    free(ix);
-    free(x_);
-    free(xp_);
-    free(P_);
-    free(Pp_);
-    free(H_);
+    free(ix); free(x_); free(xp_); free(P_); free(Pp_); free(H_);
     return info;
 }
 /* smoother --------------------------------------------------------------------
@@ -1912,7 +1959,7 @@ extern void matprint(const double A[],int n,int m,int p,int q) {
 extern double str2num(const char *s,int i,int n) {
     char str[256],*p=str;
 
-    if (i<0 || (int) sizeof(str)-1<n)
+    if (i<0||(int) sizeof(str)-1<n)
         return 0.0;
     /* Special case i==0,skipping the strlen check.
     *Note: Could usefully use strnlen(s,i) here */
@@ -1939,7 +1986,7 @@ extern int str2time(const char *s,int i,int n,gtime_t *t) {
     double ep[6];
     char str[256],*p=str;
 
-    if (i<0 || (int) strlen(s)<i || (int) sizeof(str)-1<i)
+    if (i<0||(int) strlen(s)<i||(int) sizeof(str)-1<i)
         return -1;
     for (s+=i;*s&&--n >=0;)
         *p++=*s++;
@@ -1962,7 +2009,7 @@ extern gtime_t epoch2time(const double *ep) {
     gtime_t time={0};
     int days,sec,year=(int) ep[0],mon=(int) ep[1],day=(int) ep[2];
 
-    if (year<1970 || 2099<year || mon<1 || 12<mon)
+    if (year<1970||2099<year||mon<1||12<mon)
         return time;
 
     /* leap year if year%4==0 in 1901-2099 */
@@ -2022,7 +2069,7 @@ extern void time2epoch_n(gtime_t t,double *ep,int n) {
 extern gtime_t gpst2time(int week,double sec) {
     gtime_t t=epoch2time(gpst0);
 
-    if (sec<-1E9 || 1E9<sec)
+    if (sec<-1E9||1E9<sec)
         sec=0.0;
     t.time+=(time_t) 86400*7*week+(int) sec;
     t.sec=sec-(int) sec;
@@ -2052,7 +2099,7 @@ extern double time2gpst(gtime_t t,int *week) {
 extern gtime_t gst2time(int week,double sec) {
     gtime_t t=epoch2time(gst0);
 
-    if (sec<-1E9 || 1E9<sec)
+    if (sec<-1E9||1E9<sec)
         sec=0.0;
     t.time+=(time_t) 86400*7*week+(int) sec;
     t.sec=sec-(int) sec;
@@ -2082,7 +2129,7 @@ extern double time2gst(gtime_t t,int *week) {
 extern gtime_t bdt2time(int week,double sec) {
     gtime_t t=epoch2time(bdt0);
 
-    if (sec<-1E9 || 1E9<sec)
+    if (sec<-1E9||1E9<sec)
         sec=0.0;
     t.time+=(time_t) 86400*7*week+(int) sec;
     t.sec=sec-(int) sec;
@@ -2786,7 +2833,7 @@ extern void eci2ecef(gtime_t tutc,const double *erpv,double *U,double *gmst) {
     double R1[9],R2[9],R3[9],R[9],W[9],N[9],P[9],NP[9];
     int i;
 
-    trace(4,"eci2ecef: tutc=%s\n",time_str(tutc,3));
+    trace(3,"eci2ecef: tutc=%s\n",time_str(tutc,3));
 
     if (fabs(timediff(tutc,tutc_))<0.01) { /* read cache */
         for (i=0;i<9;i++)
@@ -2844,15 +2891,15 @@ extern void eci2ecef(gtime_t tutc,const double *erpv,double *U,double *gmst) {
     if (gmst)
         *gmst=gmst_;
 
-    trace(5,"gmst=%.12f gast=%.12f\n",gmst_,gast);
-    trace(5,"P=\n");
-    tracemat(5,P,3,3,15,12);
-    trace(5,"N=\n");
-    tracemat(5,N,3,3,15,12);
-    trace(5,"W=\n");
-    tracemat(5,W,3,3,15,12);
-    trace(5,"U=\n");
-    tracemat(5,U,3,3,15,12);
+    trace(9,"gmst=%.12f gast=%.12f\n",gmst_,gast);
+    trace(9,"P=\n");
+    tracemat(9,P,3,3,15,12);
+    trace(9,"N=\n");
+    tracemat(9,N,3,3,15,12);
+    trace(9,"W=\n");
+    tracemat(9,W,3,3,15,12);
+    trace(9,"U=\n");
+    tracemat(9,U,3,3,15,12);
 }
 /* decode antenna parameter field --------------------------------------------*/
 static int decodef(char *p,int n,double *v) {
@@ -2958,13 +3005,13 @@ static int readantex(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr) {
     spcv_t spcv;
     rpcv_t rpcv;
     double neu[3];
-    int i,j,f,freq=0,state=0,flag1=0,flag2=0,num,id;
+    int i,j,f,freq=0,state=0,flag1=0,flag2=0,num,id,sys;
     char buff[256],csys,type[MAXANT],code[MAXANT],temp[4]={' ',' ',' ','\0'};
 
     trace(3,"readantex: file=%s\n",file);
 
     if (!(fp=fopen(file,"r"))) {
-        trace(2,"antex pcv file open error: %s\n",file);
+        trace(1,"receiver and satellite antex file open error: %s\n",file);
         return 0;
     }
     while (fgets(buff,sizeof(buff),fp)) {
@@ -3042,6 +3089,7 @@ static int readantex(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr) {
             if (sscanf(buff+4,"%d",&f)<1) continue;
             if (sscanf(buff+3,"%c",&csys)<1) continue;
             if (csys=='G') {
+                sys=0;
                 if (f==1)
                     freq=1;         /*G01->L1*/
                 else if (f==2)
@@ -3049,9 +3097,12 @@ static int readantex(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr) {
                 else if (f==5)
                     freq=3;         /*G05->L5*/
             } 
-            else if (csys=='R')
-                freq=f;
+            else if (csys=='R') {
+                sys=1;
+                freq=f;                
+            }
             else if (csys=='C') {
+                sys=3;
                 if (f==2)
                     freq=1;         /*C02->B1I*/
                 else if (f==7)
@@ -3060,6 +3111,7 @@ static int readantex(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr) {
                     freq=3;         /*C06->B3I*/
             } 
             else if (csys=='E') {
+                sys=2;
                 if (f==1)
                     freq=1;         /*E01->E1*/
                 else if (f==7)
@@ -3072,6 +3124,7 @@ static int readantex(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr) {
                     freq=5;         /*E08->E5ab*/
             } 
             else if (csys=='J') {
+                sys=5;
                 if (f<5)
                     freq=f;
                 else if (f==5)
@@ -3093,9 +3146,9 @@ static int readantex(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr) {
                 spcv.off[freq-1][2]=neu[2];     /* z */                
             }
             else if (1==flag2) {
-                rpcv.off[freq-1][0]=neu[1];     /* e */
-                rpcv.off[freq-1][1]=neu[0];     /* n */
-                rpcv.off[freq-1][2]=neu[2];     /* u */                  
+                rpcv.off[sys][freq-1][0]=neu[1];     /* e */
+                rpcv.off[sys][freq-1][1]=neu[0];     /* n */
+                rpcv.off[sys][freq-1][2]=neu[2];     /* u */                  
             }
         }
         /* satellite and receiver PCV considers changes with azimuth angle*/
@@ -3120,14 +3173,14 @@ static int readantex(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr) {
             else if (1==flag2) {
                 num=(int)((rpcv.zen2-rpcv.zen1)/rpcv.dzen+1);
                 if (0==rpcv.dazi) {
-                    if ((i=decodef(buff+8,num,rpcv.var[freq-1]))<=0) 
+                    if ((i=decodef(buff+8,num,rpcv.var[sys][freq-1]))<=0) 
                         continue;
                 }
                 else if (rpcv.dazi>0) {
                     id=(int)(360.0/rpcv.dazi)+1;
                     for (i=0;i<id;i++) {
                         fgets(buff,sizeof(buff),fp);
-                        if ((j=decodef(buff+8,num,&rpcv.var[freq-1][i*num]))<=0)
+                        if ((j=decodef(buff+8,num,&rpcv.var[sys][freq-1][i*num]))<=0)
                             continue;
 				    }
                 }
@@ -3158,14 +3211,14 @@ extern int readpcv(const char *file,spcvs_t *pcvs,rpcvs_t *pcvr) {
     if (!(ext=strrchr(file,'.')))
         ext="";
 
-    if (!strcmp(ext,".atx") || !strcmp(ext,".ATX")) {
+    if (!strcmp(ext,".atx")||!strcmp(ext,".ATX")) {
         stat=readantex(file,pcvs,pcvr);
     } else {
         stat=readngspcv(file,pcvs);
     }
     for (i=0;i<pcvs->n;i++) {
         spcv=pcvs->pcv+i;
-        trace(4,"sat=%2d type=%20s code=%s off=%8.4f %8.4f %8.4f  %8.4f %8.4f %8.4f\n",
+        trace(9,"sat=%2d type=%20s code=%s off=%8.4f %8.4f %8.4f  %8.4f %8.4f %8.4f\n",
               spcv->sat,spcv->type,spcv->code,spcv->off[0][0],spcv->off[0][1],
               spcv->off[0][2],spcv->off[1][0],spcv->off[1][1],spcv->off[1][2]);
     }
@@ -3179,22 +3232,21 @@ extern int readpcv(const char *file,spcvs_t *pcvs,rpcvs_t *pcvr) {
 *         pcvs_t *pcvs       IO  antenna parameters
 *return : antenna parameter (NULL: no antenna)
  *-----------------------------------------------------------------------------*/
-extern spcv_t *searchspcv(int sat,const char *type,gtime_t time, const spcvs_t *pcvs) 
+extern spcv_t *searchspcv(int sat, gtime_t time, const spcvs_t *pcvs) 
 {
     spcv_t *spcv;
-    char buff[MAXANT],*types[2],*p;
-    int i,n=0;
+    int i;
 
-    trace(4,"searchpcv: sat=%2d type=%s\n",sat,type);
+    trace(9,"searchpcv: sat=%2d\n",sat);
 
     if (sat) { /* search satellite antenna */
         for (i=0;i<pcvs->n;i++) {
             spcv=pcvs->pcv+i;
             if (spcv->sat!=sat)
                 continue;
-            if (spcv->ts.time !=0&&timediff(spcv->ts,time)>0.0)
+            if (spcv->ts.time!=0&&timediff(spcv->ts,time)>0.0)
                 continue;
-            if (spcv->te.time !=0&&timediff(spcv->te,time)<0.0)
+            if (spcv->te.time!=0&&timediff(spcv->te,time)<0.0)
                 continue;
             return spcv;
         }
@@ -3208,13 +3260,11 @@ extern spcv_t *searchspcv(int sat,const char *type,gtime_t time, const spcvs_t *
 *         pcvs_t *pcvs       IO  antenna parameters
 *return : antenna parameter (NULL: no antenna)
  *-----------------------------------------------------------------------------*/
-extern rpcv_t *searchrpcv(const char *type,gtime_t time, const rpcvs_t *pcvr)
+extern rpcv_t *searchrpcv(const char *type, gtime_t time, const rpcvs_t *pcvr)
 {
     rpcv_t *rpcv;
     char buff[MAXANT],*types[2],*p;
     int i,j,n=0;
-
-    trace(4,"searchpcv: sat=%2d type=%s\n",sat,type);
 
     strcpy(buff,type);
     char *q;
@@ -3267,7 +3317,7 @@ extern void readpos(const char *file,const char *rcv,double *pos) {
         return;
     }
     while (np<2048&&fgets(buff,sizeof(buff),fp)) {
-        if (buff[0]=='%' || buff[0]=='#')
+        if (buff[0]=='%'||buff[0]=='#')
             continue;
         if (sscanf(buff,"%lf %lf %lf %255s",&poss[np][0],&poss[np][1],&poss[np][2],
                    str)<4)
@@ -3324,11 +3374,11 @@ extern int readblq(const char *file,const char *sta,double *odisp) {
         ;
 
     if (!(fp=fopen(file,"r"))) {
-        trace(2,"blq file open error: file=%s\n",file);
+        trace(1,"blq file open error: file=%s\n",file);
         return 0;
     }
     while (fgets(buff,sizeof(buff),fp)) {
-        if (!strncmp(buff,"$$",2) || strlen(buff)<2)
+        if (!strncmp(buff,"$$",2)||strlen(buff)<2)
             continue;
 
         if (sscanf(buff+2,"%16s",name)<1)
@@ -3362,7 +3412,7 @@ extern int readerp(const char *file,erp_t *erp) {
     trace(3,"readerp: file=%s\n",file);
 
     if (!(fp=fopen(file,"r"))) {
-        trace(2,"erp file open error: file=%s\n",file);
+        trace(1,"erp file open error: file=%s\n",file);
         return 0;
     }
     while (fgets(buff,sizeof(buff),fp)) {
@@ -3406,7 +3456,7 @@ extern int geterp(const erp_t *erp,gtime_t time,double *erpv) {
     double mjd,day,a;
     int i,j,k;
 
-    trace(4,"geterp:\n");
+    trace(9,"geterp:\n");
 
     if (erp->n <=0)
         return 0;
@@ -3482,7 +3532,7 @@ static void uniqeph(nav_t *nav) {
     nav->eph=nav_eph;
     nav->nmax=nav->n;
 
-    trace(4,"uniqeph: n=%d\n",nav->n);
+    trace(3,"uniqeph: n=%d\n",nav->n);
 }
 /* compare glonass ephemeris -------------------------------------------------*/
 static int cmpgeph(const void *p1,const void *p2) {
@@ -3520,7 +3570,7 @@ static void uniqgeph(nav_t *nav) {
     nav->geph=nav_geph;
     nav->ngmax=nav->ng;
 
-    trace(4,"uniqgeph: ng=%d\n",nav->ng);
+    trace(3,"uniqgeph: ng=%d\n",nav->ng);
 }
 /* compare sbas ephemeris ----------------------------------------------------*/
 static int cmpseph(const void *p1,const void *p2) {
@@ -3557,7 +3607,7 @@ static void uniqseph(nav_t *nav) {
     nav->seph=nav_seph;
     nav->nsmax=nav->ns;
 
-    trace(4,"uniqseph: ns=%d\n",nav->ns);
+    trace(3,"uniqseph: ns=%d\n",nav->ns);
 }
 /* unique ephemerides ----------------------------------------------------------
 *unique ephemerides in navigation data and update carrier wave length
@@ -3624,9 +3674,9 @@ extern int sortobs(obs_t *obs) {
 *return : 1:on condition,0:not on condition
  *-----------------------------------------------------------------------------*/
 extern int screent(gtime_t time,gtime_t ts,gtime_t te,double tint) {
-    return (tint <=0.0 || fmod(time2gpst(time,NULL)+DTTOL,tint) <=DTTOL*2.0) &&
-           (ts.time==0 || timediff(time,ts) >=-DTTOL) &&
-           (te.time==0 || timediff(time,te)<DTTOL);
+    return (tint <=0.0||fmod(time2gpst(time,NULL)+DTTOL,tint) <=DTTOL*2.0) &&
+           (ts.time==0||timediff(time,ts) >=-DTTOL) &&
+           (te.time==0||timediff(time,te)<DTTOL);
 }
 /* read/save navigation data ---------------------------------------------------
 *save or load navigation data
@@ -3887,7 +3937,7 @@ extern int expath(const char *path,char *paths[],int nmax) {
 
     trace(3,"expath  : path=%s nmax=%d\n",path,nmax);
 
-    if ((p=strrchr(path,'/')) || (p=strrchr(path,'\\'))) {
+    if ((p=strrchr(path,'/'))||(p=strrchr(path,'\\'))) {
         file=p+1;
         strncpy(dir,path,p-path+1);
         dir[p-path+1]='\0';
@@ -3938,7 +3988,7 @@ static int mkdir_r(const char *dir) {
     HANDLE h;
     WIN32_FIND_DATA data;
 
-    if (!*dir || !strcmp(dir+1,":\\"))
+    if (!*dir||!strcmp(dir+1,":\\"))
         return 1;
 
     sprintf(pdir,"%.1023s",dir);
@@ -3951,7 +4001,7 @@ static int mkdir_r(const char *dir) {
         } else
             FindClose(h);
     }
-    if (CreateDirectory(dir,NULL) || GetLastError()==ERROR_ALREADY_EXISTS) {
+    if (CreateDirectory(dir,NULL)||GetLastError()==ERROR_ALREADY_EXISTS) {
         return 1;
     }
 #else
@@ -3969,7 +4019,7 @@ static int mkdir_r(const char *dir) {
         } else
             fclose(fp);
     }
-    if (!mkdir(dir,0777) || errno==EEXIST)
+    if (!mkdir(dir,0777)||errno==EEXIST)
         return 1;
 #endif
     trace(2,"directory generation error: dir=%s\n",dir);
@@ -4088,11 +4138,11 @@ extern int reppath(const char *path,char *rpath,gtime_t time,const char *rov,
         stat|=repstr(rpath,"%H",rep);
         sprintf(rep,"%02d",((int) ep[4] / 15)*15);
         stat|=repstr(rpath,"%t",rep);
-    } else if (strstr(rpath,"%ha") || strstr(rpath,"%hb") || strstr(rpath,"%hc") ||
-               strstr(rpath,"%Y") || strstr(rpath,"%y") || strstr(rpath,"%m") ||
-               strstr(rpath,"%d") || strstr(rpath,"%h") || strstr(rpath,"%M") ||
-               strstr(rpath,"%S") || strstr(rpath,"%n") || strstr(rpath,"%W") ||
-               strstr(rpath,"%D") || strstr(rpath,"%H") || strstr(rpath,"%t")) {
+    } else if (strstr(rpath,"%ha")||strstr(rpath,"%hb")||strstr(rpath,"%hc") ||
+               strstr(rpath,"%Y")||strstr(rpath,"%y")||strstr(rpath,"%m") ||
+               strstr(rpath,"%d")||strstr(rpath,"%h")||strstr(rpath,"%M") ||
+               strstr(rpath,"%S")||strstr(rpath,"%n")||strstr(rpath,"%W") ||
+               strstr(rpath,"%D")||strstr(rpath,"%H")||strstr(rpath,"%t")) {
         return -1;/* no valid time */
     }
     return stat;
@@ -4119,12 +4169,12 @@ extern int reppaths(const char *path,char *rpath[],int nmax,gtime_t ts,
 
     trace(3,"reppaths: path =%s nmax=%d rov=%s base=%s\n",path,nmax,rov,base);
 
-    if (ts.time==0 || te.time==0 || timediff(ts,te)>0.0)
+    if (ts.time==0||te.time==0||timediff(ts,te)>0.0)
         return 0;
 
-    if (strstr(path,"%S") || strstr(path,"%M") || strstr(path,"%t"))
+    if (strstr(path,"%S")||strstr(path,"%M")||strstr(path,"%t"))
         tint=900.0;
-    else if (strstr(path,"%h") || strstr(path,"%H"))
+    else if (strstr(path,"%h")||strstr(path,"%H"))
         tint=3600.0;
 
     tow=time2gpst(ts,&week);
@@ -4132,7 +4182,7 @@ extern int reppaths(const char *path,char *rpath[],int nmax,gtime_t ts,
 
     while (timediff(time,te) <=0.0&&n<nmax) {
         reppath(path,rpath[n],time,rov,base);
-        if (n==0 || strcmp(rpath[n],rpath[n-1]))
+        if (n==0||strcmp(rpath[n],rpath[n-1]))
             n++;
         time=timeadd(time,tint);
     }
@@ -4194,7 +4244,7 @@ extern double satazel(const double *pos,const double *e,double *azel) {
 *return : none
 *notes  : dop[0]-[3] return 0 in case of dop computation error
  *-----------------------------------------------------------------------------*/
-#define SQRT(x) ((x)<0.0 || (x) !=(x) ? 0.0 : sqrt(x))
+#define SQRT(x) ((x)<0.0||(x) !=(x) ? 0.0 : sqrt(x))
 
 extern void dops(int ns,const double *azel,double elmin,double *dop) {
     double H[4*MAXSAT],Q[16],cosel,sinel;
@@ -4203,7 +4253,7 @@ extern void dops(int ns,const double *azel,double elmin,double *dop) {
     for (i=0;i<4;i++)
         dop[i]=0.0;
     for (i=n=0;i<ns&&i<MAXSAT;i++) {
-        if (azel[1+i*2]<elmin || azel[1+i*2] <=0.0)
+        if (azel[1+i*2]<elmin||azel[1+i*2] <=0.0)
             continue;
         cosel=cos(azel[1+i*2]);
         sinel=sin(azel[1+i*2]);
@@ -4239,7 +4289,7 @@ extern double ionmodel(gtime_t t,const double *ion,const double *pos,
     double tt,f,psi,phi,lam,amp,per,x;
     int week;
 
-    if (pos[2]<-1E3 || azel[1] <=0)
+    if (pos[2]<-1E3||azel[1] <=0)
         return 0.0;
     if (norm(ion,8) <=0.0)
         ion=ion_default;
@@ -4281,9 +4331,9 @@ extern double ionmodel(gtime_t t,const double *ion,const double *pos,
 *return : ionospheric mapping function
  *-----------------------------------------------------------------------------*/
 extern double ionmapf(const double *pos,const double *azel) {
-    if (pos[2] >=HION)
+    if (pos[2]>=HION)
         return 1.0;
-    return 1.0 / cos(asin((RE_WGS84+pos[2]) / (RE_WGS84+HION)*sin(PI / 2.0-azel[1])));
+    return 1.0/cos(asin((RE_WGS84+pos[2])/(RE_WGS84+HION)*sin(PI/2.0-azel[1])));
 }
 /* ionospheric pierce point position -------------------------------------------
 *compute ionospheric pierce point (ipp) position and slant factor
@@ -4303,7 +4353,7 @@ extern double ionppp(const double *pos,const double *azel,double re,
     /* The radius at the receiver station. */
     r=re+pos[2] / 1000.0;
     /* asin(rp) is the zenith angle at the IPP. */
-    rp=r / (re+hion)*cos(azel[1]);
+    rp=r/(re+hion)*cos(azel[1]);
     /* The angle at the center of the earth. */
     ap=PI / 2.0-azel[1]-asin(rp);
     sinap=sin(ap);
@@ -4323,7 +4373,7 @@ extern double ionppp(const double *pos,const double *azel,double re,
 /* select iono-free linear combination (L1/L2 or L1/L5) ----------------------*/
 extern int seliflc(int optnf,int sys) {
     /* use L1/L5 for Galileo if L5 is enabled */
-    return ((optnf==2 || sys !=SYS_GAL) ? 1 : 2);
+    return ((optnf==2||sys !=SYS_GAL) ? 1 : 2);
 }
 /* troposphere model -----------------------------------------------------------
 *compute tropospheric delay by standard atmosphere and saastamoinen model
@@ -4338,7 +4388,7 @@ extern double tropmodel(gtime_t time,const double *pos,const double *azel,
     const double temp0=15.0;/* temperature at sea level */
     double hgt,pres,temp,e,z,trph,trpw;
 
-    if (pos[2]<-100.0 || 1E4<pos[2] || azel[1] <=0)
+    if (pos[2]<-100.0||1E4<pos[2]||azel[1] <=0)
         return 0.0;
 
     /* standard atmosphere */
@@ -4432,10 +4482,10 @@ extern double tropmapf(gtime_t time,const double pos[],const double azel[],
     const double ep[]={2000,1,1,12,0,0};
     double mjd,lat,lon,hgt,zd,gmfh,gmfw;
 #endif
-    trace(4,"tropmapf: pos=%10.6f %11.6f %6.1f azel=%5.1f %4.1f\n",
+    trace(9,"tropmapf: pos=%10.6f %11.6f %6.1f azel=%5.1f %4.1f\n",
           pos[0]*R2D,pos[1]*R2D,pos[2],azel[0]*R2D,azel[1]*R2D);
 
-    if (pos[2]<-1000.0 || pos[2]>20000.0) {
+    if (pos[2]<-1000.0||pos[2]>20000.0) {
         if (mapfw)
             *mapfw=0.0;
         return 0.0;
@@ -4477,24 +4527,50 @@ static double interpvar(double ang,const double *var) {
 *return : none
 *notes  : current version does not support azimuth dependent terms
  *-----------------------------------------------------------------------------*/
-extern void antmodel(const rpcv_t *rpcv,const double *del,const double *azel,
+extern void antmodel(int sys, const rpcv_t *rpcv,const double *del,const double *azel,
                      int opt,double *dant) {
     double e[3],off[3],cosel=cos(azel[1]);
-    int i,j,fr;
+    int i,j,fr,k=0,isys;
 
-    trace(4,"antmodel: azel=%6.1f %4.1f opt=%d\n",azel[0]*R2D,azel[1]*R2D,opt);
+    trace(9,"antmodel: azel=%6.1f %4.1f opt=%d\n",azel[0]*R2D,azel[1]*R2D,opt);
+    if (SYS_GPS==sys) {isys=0;}
+    else if (SYS_GLO==sys) {isys=1;}
+    else if (SYS_GAL==sys) {
+        /* if no Galileo PCO, use GPS PCO*/
+        if (norm(rpcv->off[2][0],3)<=0) {isys=0;}
+        else {isys=2;}
+        }
+    else if (SYS_CMP==sys) {
+        /* if no BDS PCO, use GPS PCO*/
+        if (norm(rpcv->off[3][0],3)<=0) {isys=0;}
+        else {isys=3;}
+        }
+    else if (SYS_IRN==sys) {
+        /* if no IRNSS PCO, use GPS PCO*/
+        if (norm(rpcv->off[4][0],3)<=0) {isys=0;}
+        else {isys=4;}
+        }
+    else if (SYS_QZS==sys) {
+        /* if no QZSS PCO, use GPS PCO*/
+        if (norm(rpcv->off[5][0],3)<=0) {isys=0;}
+        else {isys=5;}
+        }
+    else {isys=0;}
 
     e[0]=sin(azel[0])*cosel;
     e[1]=cos(azel[0])*cosel;
     e[2]=sin(azel[1]);
 
     for (i=0;i<NFREQ;i++) {
-        for (j=0;j<3;j++)
-            off[j]=rpcv->off[i][j]+del[j];
-
-        dant[i]=-dot3(off,e)+(opt?interpvar(90.0-azel[1]*R2D,rpcv->var[i]):0.0);
+        /* if no L3...PCO, use L1 PCO*/
+        for (j=0;j<3;j++) {
+            if (i>1) {k=0;}
+            else {k=i;}
+            off[j]=rpcv->off[isys][k][j]+del[j];            
+        }
+        dant[i]=-dot3(off,e)+(opt?interpvar(90.0-azel[1]*R2D,rpcv->var[isys][i]):0.0);
     }
-    trace(4,"antmodel: dant=%6.3f %6.3f\n",dant[0],dant[1]);
+    trace(9,"antmodel: dant=%6.3f %6.3f\n",dant[0],dant[1]);
 }
 /* satellite antenna model ------------------------------------------------------
 *compute satellite antenna phase center parameters
@@ -4506,19 +4582,19 @@ extern void antmodel(const rpcv_t *rpcv,const double *del,const double *azel,
 extern void antmodel_s(const spcv_t *spcv,double nadir,double *dant) {
     int i;
 
-    trace(4,"antmodel_s: nadir=%6.1f\n",nadir*R2D);
+    trace(9,"antmodel_s: nadir=%6.1f\n",nadir*R2D);
 
     for (i=0;i<NFREQ;i++) {
         dant[i]=interpvar(nadir*R2D*5.0,spcv->var[i]);
     }
-    trace(4,"antmodel_s: dant=%6.3f %6.3f\n",dant[0],dant[1]);
+    trace(9,"antmodel_s: dant=%6.3f %6.3f\n",dant[0],dant[1]);
 }
 /* sun and moon position in eci (ref [4] 5.1.1,5.2.1) -----------------------*/
 static void sunmoonpos_eci(gtime_t tut,double *rsun,double *rmoon) {
     const double ep2000[]={2000,1,1,12,0,0};
     double t,f[5],eps,Ms,ls,rs,lm,pm,rm,sine,cose,sinp,cosp,sinl,cosl;
 
-    trace(4,"sunmoonpos_eci: tut=%s\n",time_str(tut,3));
+    trace(9,"sunmoonpos_eci: tut=%s\n",time_str(tut,3));
 
     t=timediff(tut,epoch2time(ep2000)) / 86400.0 / 36525.0;
 
@@ -4541,7 +4617,7 @@ static void sunmoonpos_eci(gtime_t tut,double *rsun,double *rmoon) {
         rsun[1]=rs*cose*sinl;
         rsun[2]=rs*sine*sinl;
 
-        trace(5,"rsun =%.3f %.3f %.3f\n",rsun[0],rsun[1],rsun[2]);
+        trace(9,"rsun =%.3f %.3f %.3f\n",rsun[0],rsun[1],rsun[2]);
     }
     /* moon position in eci */
     if (rmoon) {
@@ -4560,7 +4636,7 @@ static void sunmoonpos_eci(gtime_t tut,double *rsun,double *rmoon) {
         rmoon[1]=rm*(cose*cosp*sinl-sine*sinp);
         rmoon[2]=rm*(sine*cosp*sinl+cose*sinp);
 
-        trace(5,"rmoon=%.3f %.3f %.3f\n",rmoon[0],rmoon[1],rmoon[2]);
+        trace(9,"rmoon=%.3f %.3f %.3f\n",rmoon[0],rmoon[1],rmoon[2]);
     }
 }
 /* sun and moon position -------------------------------------------------------
@@ -4577,7 +4653,7 @@ extern void sunmoonpos(gtime_t tutc,const double *erpv,double *rsun,
     gtime_t tut;
     double rs[3],rm[3],U[9],gmst_;
 
-    trace(4,"sunmoonpos: tutc=%s\n",time_str(tutc,3));
+    trace(9,"sunmoonpos: tutc=%s\n",time_str(tutc,3));
 
     tut=timeadd(tutc,erpv[2]);/* utc -> ut1 */
 
@@ -4697,9 +4773,9 @@ extern int rtk_uncompress(const char *file,char *uncfile) {
         return 0;
 
     /* uncompress by gzip */
-    if (!strcmp(p,".z") || !strcmp(p,".Z") ||
-        !strcmp(p,".gz") || !strcmp(p,".GZ") ||
-        !strcmp(p,".zip") || !strcmp(p,".ZIP")) {
+    if (!strcmp(p,".z")||!strcmp(p,".Z") ||
+        !strcmp(p,".gz")||!strcmp(p,".GZ") ||
+        !strcmp(p,".zip")||!strcmp(p,".ZIP")) {
         strcpy(uncfile,tmpfile);
         uncfile[p-tmpfile]='\0';
         sprintf(cmd,"gzip -f -d -c \"%s\">\"%s\"",tmpfile,uncfile);
@@ -4743,8 +4819,8 @@ extern int rtk_uncompress(const char *file,char *uncfile) {
     }
     /* extract hatanaka-compressed file by cnx2rnx */
     else if ((p=strrchr(tmpfile,'.')) &&
-             ((strlen(p)>3&&(*(p+3)=='d' || *(p+3)=='D')) ||
-              !strcmp(p,".crx") || !strcmp(p,".CRX"))) {
+             ((strlen(p)>3&&(*(p+3)=='d'||*(p+3)=='D')) ||
+              !strcmp(p,".crx")||!strcmp(p,".CRX"))) {
         strcpy(uncfile,tmpfile);
         uncfile[p-tmpfile+3]=*(p+3)=='D' ? 'O' : 'o';
         sprintf(cmd,"crx2rnx<\"%s\">\"%s\"",tmpfile,uncfile);
@@ -4763,7 +4839,7 @@ extern int rtk_uncompress(const char *file,char *uncfile) {
     return stat;
 }
 /* dummy application functions for shared library ----------------------------*/
-#if defined(WIN_DLL) || defined(DLL)
+#if defined(WIN_DLL)||defined(DLL)
 extern int showmsg(const char *format,...) { return 0;}
 extern void settspan(gtime_t ts,gtime_t te) {}
 extern void settime(gtime_t time) {}

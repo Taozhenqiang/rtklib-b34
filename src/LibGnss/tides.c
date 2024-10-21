@@ -46,7 +46,7 @@ static void tide_pl(const double *eu, const double *rp, double GMp,
     double r,ep[3],latp,lonp,p,K2,K3,a,H2,L2,dp,du,cosp,sinl,cosl;
     int i;
     
-    trace(4,"tide_pl : pos=%.3f %.3f\n",pos[0]*R2D,pos[1]*R2D);
+    trace(9,"tide_pl : pos=%.3f %.3f\n",pos[0]*R2D,pos[1]*R2D);
     
     if ((r=norm(rp,3))<=0.0) {
         dr[0]=dr[1]=dr[2]=0;

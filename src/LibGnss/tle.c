@@ -478,7 +478,7 @@ extern int tle_name_read(const char *file, tle_t *tle)
                 !strcmp(tle->data[i].desig,desig)) break;
         }
         if (i>=tle->n) {
-            trace(4,"no tle data: satno=%s desig=%s\n",satno,desig);
+            trace(6,"no tle data: satno=%s desig=%s\n",satno,desig);
             continue;
         }
         if (!*tle->data[i].name) {
@@ -550,7 +550,7 @@ extern int tle_pos(gtime_t time, const char *name, const char *satno,
         if (i<tle->n) stat=0;
     }
     if (stat) {
-        trace(4,"no tle data: name=%s satno=%s desig=%s\n",name,satno,desig);
+        trace(6,"no tle data: name=%s satno=%s desig=%s\n",name,satno,desig);
         return 0;
     }
     tutc=gpst2utc(time);

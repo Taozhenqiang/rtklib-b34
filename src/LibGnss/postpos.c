@@ -427,6 +427,12 @@ static void procpos(FILE *fp, FILE *fptm, const prcopt_t *popt, const solopt_t *
 
     while ((nobs=inputobs(obs_ptr,rtk->sol.stat,popt))>=0) {
 
+        /* DebugGlo initialization*/
+        Debug_Glo.tNow=obs_ptr[0].time;
+        time2epoch(Debug_Glo.tNow,Debug_Glo.ctNow);
+        Debug_Glo.sow=time2gpst(Debug_Glo.tNow,&Debug_Glo.week);
+        sprintf(Debug_Glo.chTime,"%02.0f:%02.0f:%04.1f  %04.0f%c",Debug_Glo.ctNow[3],Debug_Glo.ctNow[4],Debug_Glo.ctNow[5],Debug_Glo.sow,'\0');
+
         /* exclude satellites */
         for (i=n=0;i<nobs;i++) {
             if ((satsys(obs_ptr[i].sat,NULL)&popt->navsys)&&
@@ -511,7 +517,7 @@ static int valcomb(const sol_t *solf, const sol_t *solb, double *rbf,
     int i;
     char tstr[32];
 
-    trace(4,"valcomb :\n");
+    trace(8,"valcomb :\n");
 
     /* compare forward and backward solution */
     for (i=0;i<3;i++) {
@@ -917,17 +923,11 @@ static int openses(const prcopt_t *popt, const solopt_t *sopt,
     trace(3,"openses :\n");
 
     /* read satellite and receiver antenna parameters */
-    if (*fopt->satantp&&!(readpcv(fopt->satantp,pcvs,pcvr))) {
-        showmsg("error : no sat ant pcv in %s",fopt->satantp);
-        trace(1,"sat antenna pcv read error: %s\n",fopt->satantp);
+    if (*fopt->antp&&!(readpcv(fopt->antp,pcvs,pcvr))) {
+        showmsg("error : no sat ant pcv in %s",fopt->antp);
+        trace(1,"sat antenna pcv read error: %s\n",fopt->antp);
         return 0;
     }
-    /* read receiver antenna parameters */
-    /* if (*fopt->rcvantp&&!(readpcv(fopt->rcvantp,pcvr))) {
-        showmsg("error : no rec ant pcv in %s",fopt->rcvantp);
-        trace(1,"rec antenna pcv read error: %s\n",fopt->rcvantp);
-        return 0;
-    } */
     /* open geoid data */
     if (sopt->geoid>0&&*fopt->geoid) {
         if (!opengeoid(sopt->geoid,fopt->geoid)) {
@@ -970,9 +970,9 @@ static void setpcv(gtime_t time, prcopt_t *popt, nav_t *nav, const spcvs_t *pcvs
     for (i=0;i<MAXSAT;i++) {
         nav->spcvs[i]=spcv0;
         if (!(satsys(i+1,NULL)&popt->navsys)) continue;
-        if (!(spcv=searchspcv(i+1,"",time,pcvs))) {
+        if (!(spcv=searchspcv(i+1,time,pcvs))) {
             satno2id(i+1,id);
-            trace(4,"no satellite antenna pcv: %s\n",id);
+            trace(2,"no satellite antenna pcv: %s\n",id);
             continue;
         }
         nav->spcvs[i]=*spcv;
@@ -1066,7 +1066,7 @@ static int execses(gtime_t ts, gtime_t te, double ti, const prcopt_t *popt,
     prcopt_t popt_=*popt;
     char tracefile[1024],statfile[1024],path[1024],outfiletm[1024]={0};
     const char *ext;
-    int i,j,k,dcb_ok;
+    int i,j,k;
 
     trace(3,"execses : n=%d outfile=%s\n",n,outfile);
 
@@ -1096,8 +1096,8 @@ static int execses(gtime_t ts, gtime_t te, double ti, const prcopt_t *popt,
         free(navs.erp.data); navs.erp.data=NULL; navs.erp.n=navs.erp.nmax=0;
         reppath(fopt->eop,path,ts,"","");
         if (!readerp(path,&navs.erp)) {
-            showmsg("error : no erp data %s",path);
             trace(2,"no erp data %s\n",path);
+            showmsg("error : no erp data %s",path);         
         }
     }
     /* read obs and nav data */
@@ -1109,26 +1109,25 @@ static int execses(gtime_t ts, gtime_t te, double ti, const prcopt_t *popt,
     }
 
     /* read dcb parameters from DCB, BIA, BSX files */
-    dcb_ok = 0;
-    for (i=0;i<MAX_CODE_BIASES;i++) for (k=0;k<MAX_CODE_BIAS_FREQS;k++) {
-        /* FIXME: cbias later initialized with 0 in readdcb()!  */
-        for (j=0;j<MAXSAT;j++) navs.cbias[j][k][i]=-1;
-        for (j=0;j<MAXRCV;j++) navs.rbias[j][k][i]=0;
-        }
-    for (k=0;k<MAXSTA;k++) {
-        /* FIXME: cbias later initialized with 0 in readdcb()!  */
-        for (j=0;j<MAXCODE;j++) navs.obias[k][j]=-1;
-        }
+    for (i=0;i<MAXSAT;i++) for (j=0;j<MAX_CODE_BIAS_FREQS;j++) {
+        navs.cbias[i][j]=0.0;
+        for (k=0;k<MAX_CODE_BIASES;k++) {
+            navs.rbias[j][k][i]=0.0;
+        }  
+    }
+    for (j=0;j<MAXSTA;j++) for (k=0;k<MAXCODE;k++) {
+        navs.obias[j][k]=0.0;
+    }
     for (i=0;i<n;i++) {  /* first check infiles for .BIA or .BSX files */
-        if ((dcb_ok=readdcb(infile[i],&navs,stas))) break;
+        if (readdcb(&popt_,infile[i],&navs,stas)) break;
     }
-    if (!dcb_ok&&*fopt->dcb) {  /* then check if DCB file specified */
+    /* if (!dcb_ok&&*fopt->dcb) { 
         reppath(fopt->dcb,path,ts,"","");
-        dcb_ok=readdcb(path,&navs,stas);
-    }
-    if (!dcb_ok) {
+        dcb_ok=readdcb(&popt_,path,&navs,stas);
+    } */
 
-    }
+    tgdarrge(&popt_,&navs);
+    
     /* set antenna parameters */
     if (popt_.mode!=PMODE_SINGLE) {
         setpcv(obss.n>0?obss.data[0].time:timeget(),&popt_,&navs,&pcvss,&pcvsr,

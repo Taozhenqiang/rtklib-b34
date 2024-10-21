@@ -1180,9 +1180,7 @@ static int outecef(uint8_t *buff, const char *s, const sol_t *sol,
                    const solopt_t *opt)
 {
     const char *sep=opt2sep(opt);
-    char *p=(char *)buff;
-    
-    trace(4,"outecef:\n");
+    char *p=(char *)buff;   
     
     p+=sprintf(p,"%s%s%14.4f%s%14.4f%s%14.4f%s%3d%s%3d%s%8.4f%s%8.4f%s%8.4f%s"
                "%8.4f%s%8.4f%s%8.4f%s%6.2f%s%6.1f",
@@ -1208,9 +1206,7 @@ static int outpos(uint8_t *buff, const char *s, const sol_t *sol,
 {
     double pos[3],vel[3],dms1[3],dms2[3],P[9],Q[9];
     const char *sep=opt2sep(opt);
-    char *p=(char *)buff;
-    
-    trace(4,"outpos  :\n");
+    char *p=(char *)buff;    
     
     ecef2pos(sol->rr,pos);
     soltocov(sol,P);
@@ -1254,9 +1250,7 @@ static int outenu(uint8_t *buff, const char *s, const sol_t *sol,
     double pos[3],rr[3],enu[3],P[9],Q[9];
     int i;
     const char *sep=opt2sep(opt);
-    char *p=(char *)buff;
-    
-    trace(4,"outenu  :\n");
+    char *p=(char *)buff;    
     
     for (i=0;i<3;i++) rr[i]=sol->rr[i]-rb[i];
     ecef2pos(rb,pos);
@@ -1632,9 +1626,7 @@ extern int outsols(uint8_t *buff, const sol_t *sol, const double *rb,
     int week,timeu;
     const char *sep=opt2sep(opt);
     char s[64];
-    uint8_t *p=buff;
-    
-    trace(4,"outsols :\n");
+    uint8_t *p=buff;   
     
     /* suppress output if std is over opt->maxsolstd */
     if (opt->maxsolstd>0.0&&sol_std(sol)>opt->maxsolstd) {
@@ -1749,8 +1741,6 @@ extern void outsol(FILE *fp, const sol_t *sol, const double *rb,
 {
     uint8_t buff[MAXSOLMSG+1];
     int n;
-    
-    trace(4,"outsol  :\n");
     
     if ((n=outsols(buff,sol,rb,opt))>0) {
         fwrite(buff,n,1,fp);

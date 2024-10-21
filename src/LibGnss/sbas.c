@@ -759,7 +759,7 @@ extern double sbstropcorr(gtime_t time, const double *pos, const double *azel,
     int i;
     double c,met[10],sinel=sin(azel[1]),h=pos[2],m;
     
-    trace(4,"sbstropcorr: pos=%.3f %.3f azel=%.3f %.3f\n",pos[0]*R2D,pos[1]*R2D,
+    trace(9,"sbstropcorr: pos=%.3f %.3f azel=%.3f %.3f\n",pos[0]*R2D,pos[1]*R2D,
           azel[0]*R2D,azel[1]*R2D);
     
     if (pos[2]<-100.0||10000.0<pos[2]||azel[1]<=0) {

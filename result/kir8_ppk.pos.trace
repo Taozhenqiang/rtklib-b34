@@ -1,0 +1,158 @@
+7 00:20:00.0  433200 udbias : obs outage counter overflow (sat=C45 B1C counter=6)
+7 00:25:30.0  433530 udbias : obs outage counter overflow (sat=C45 B2a counter=6)
+4 00:59:00.0  435540 C41 GF: slip detected gf_new=        6.644, gf_old=        6.700, diff_abs=        0.056, thres=        0.050, el=13.0
+4 01:03:00.0  435780 C24 GF: slip detected gf_new=       -4.292, gf_old=       -4.351, diff_abs=        0.059, thres=        0.050, el=22.8
+7 01:08:30.0  436110 udbias : obs outage counter overflow (sat=C41 B1C counter=6)
+7 01:16:30.0  436590 udbias : obs outage counter overflow (sat=C26 B1C counter=6)
+7 01:18:30.0  436710 udbias : obs outage counter overflow (sat=C41 B2a counter=6)
+7 01:22:00.0  436920 udbias : obs outage counter overflow (sat=C26 B2a counter=6)
+7 01:34:30.0  437670 udbias : obs outage counter overflow (sat=C30 B1C counter=6)
+7 01:47:30.0  438450 udbias : obs outage counter overflow (sat=C30 B2a counter=6)
+7 02:39:00.0  441540 udbias : obs outage counter overflow (sat=C24 B1C counter=6)
+7 02:39:00.0  441540 udbias : obs outage counter overflow (sat=C24 B2a counter=6)
+7 03:11:00.0  443460 udbias : obs outage counter overflow (sat=C22 B1C counter=6)
+4 03:13:30.0  443610 C22 GF: slip detected gf_new=       -0.826, gf_old=       -1.603, diff_abs=        0.777, thres=        0.050, el= 9.6
+7 03:13:30.0  443610 udbias : obs outage counter overflow (sat=C32 B1C counter=6)
+7 03:14:00.0  443640 udbias : obs outage counter overflow (sat=C32 B2a counter=6)
+4 03:37:00.0  445020 C37 GF: slip detected gf_new=        6.088, gf_old=        6.148, diff_abs=        0.060, thres=        0.050, el= 8.9
+7 03:40:00.0  445200 udbias : obs outage counter overflow (sat=C29 B1C counter=6)
+7 03:40:00.0  445200 udbias : obs outage counter overflow (sat=C29 B2a counter=6)
+7 03:54:30.0  446070 udbias : obs outage counter overflow (sat=C25 B1C counter=6)
+7 03:56:30.0  446190 udbias : obs outage counter overflow (sat=C25 B2a counter=6)
+7 05:12:30.0  450750 udbias : obs outage counter overflow (sat=C21 B2a counter=6)
+4 05:14:00.0  450840 C21 GF: slip detected gf_new=        4.351, gf_old=        6.569, diff_abs=        2.219, thres=        0.050, el=11.8
+7 05:16:00.0  450960 udbias : obs outage counter overflow (sat=C35 B1C counter=6)
+7 05:16:00.0  450960 udbias : obs outage counter overflow (sat=C35 B2a counter=6)
+7 05:17:00.0  451020 udbias : obs outage counter overflow (sat=C23 B2a counter=6)
+7 05:18:00.0  451080 udbias : obs outage counter overflow (sat=C20 B1C counter=6)
+7 05:18:00.0  451080 udbias : obs outage counter overflow (sat=C20 B2a counter=6)
+7 05:20:00.0  451200 udbias : obs outage counter overflow (sat=C23 B1C counter=6)
+7 06:46:00.0  456360 udbias : obs outage counter overflow (sat=C44 B1C counter=6)
+7 06:46:00.0  456360 udbias : obs outage counter overflow (sat=C44 B2a counter=6)
+7 06:54:30.0  456870 udbias : obs outage counter overflow (sat=C37 B1C counter=6)
+7 06:54:30.0  456870 udbias : obs outage counter overflow (sat=C37 B2a counter=6)
+7 07:09:30.0  457770 udbias : obs outage counter overflow (sat=C19 B2a counter=6)
+7 07:11:30.0  457890 udbias : obs outage counter overflow (sat=C19 B1C counter=6)
+7 07:15:30.0  458130 udbias : obs outage counter overflow (sat=C19 B2a counter=6)
+4 07:16:00.0  458160 C45 GF: slip detected gf_new=        3.940, gf_old=        4.405, diff_abs=        0.465, thres=        0.050, el= 7.1
+7 07:54:30.0  460470 udbias : obs outage counter overflow (sat=C39 B1C counter=6)
+7 07:55:30.0  460530 udbias : obs outage counter overflow (sat=C39 B2a counter=6)
+7 07:59:30.0  460770 udbias : obs outage counter overflow (sat=C34 B1C counter=6)
+7 08:05:30.0  461130 udbias : obs outage counter overflow (sat=C34 B2a counter=6)
+7 08:46:30.0  463590 udbias : obs outage counter overflow (sat=C46 B1C counter=6)
+7 08:46:30.0  463590 udbias : obs outage counter overflow (sat=C46 B2a counter=6)
+4 08:51:00.0  463860 C26 GF: slip detected gf_new=        4.137, gf_old=       -5.475, diff_abs=        9.612, thres=        0.050, el= 7.1
+7 08:56:00.0  464160 udbias : obs outage counter overflow (sat=C43 B2a counter=6)
+4 08:57:00.0  464220 C43 GF: slip detected gf_new=        4.460, gf_old=        5.490, diff_abs=        1.030, thres=        0.050, el=11.2
+7 09:06:30.0  464790 udbias : obs outage counter overflow (sat=C43 B1C counter=6)
+7 09:12:30.0  465150 udbias : obs outage counter overflow (sat=C43 B2a counter=6)
+7 09:15:30.0  465330 udbias : obs outage counter overflow (sat=C22 B1C counter=6)
+7 09:15:30.0  465330 udbias : obs outage counter overflow (sat=C22 B2a counter=6)
+4 10:02:30.0  468150 C30 GF: slip detected gf_new=        0.210, gf_old=        7.758, diff_abs=        7.548, thres=        0.050, el= 8.3
+7 10:08:00.0  468480 udbias : obs outage counter overflow (sat=C30 B1C counter=6)
+4 10:13:00.0  468780 C30 GF: slip detected gf_new=        1.890, gf_old=        0.179, diff_abs=        1.711, thres=        0.050, el=11.1
+4 10:26:30.0  469590 C24 GF: slip detected gf_new=        2.955, gf_old=       -4.309, diff_abs=        7.264, thres=        0.050, el= 7.1
+7 10:26:30.0  469590 udbias : obs outage counter overflow (sat=C28 B1C counter=6)
+7 10:26:30.0  469590 udbias : obs outage counter overflow (sat=C28 B2a counter=6)
+7 10:33:30.0  470010 udbias : obs outage counter overflow (sat=C36 B1C counter=6)
+7 10:35:30.0  470130 udbias : obs outage counter overflow (sat=C36 B2a counter=6)
+7 11:07:00.0  472020 udbias : obs outage counter overflow (sat=C21 B1C counter=6)
+7 11:07:00.0  472020 udbias : obs outage counter overflow (sat=C21 B2a counter=6)
+4 11:19:00.0  472740 C29 GF: slip detected gf_new=       -2.549, gf_old=       -2.163, diff_abs=        0.386, thres=        0.050, el= 9.4
+7 11:38:00.0  473880 udbias : obs outage counter overflow (sat=C27 B1C counter=6)
+7 11:38:00.0  473880 udbias : obs outage counter overflow (sat=C27 B2a counter=6)
+4 12:18:30.0  476310 C35 GF: slip detected gf_new=        3.713, gf_old=        7.099, diff_abs=        3.386, thres=        0.050, el= 7.1
+4 12:27:00.0  476820 C25 GF: slip detected gf_new=       -1.410, gf_old=        1.370, diff_abs=        2.780, thres=        0.050, el= 7.0
+7 12:27:30.0  476850 udbias : obs outage counter overflow (sat=C25 B1C counter=1026)
+7 12:27:30.0  476850 udbias : obs outage counter overflow (sat=C25 B2a counter=1022)
+7 12:29:30.0  476970 udbias : obs outage counter overflow (sat=C45 B1C counter=6)
+7 12:34:30.0  477270 udbias : obs outage counter overflow (sat=C45 B2a counter=6)
+7 12:48:00.0  478080 udbias : obs outage counter overflow (sat=C42 B1C counter=6)
+7 12:48:00.0  478080 udbias : obs outage counter overflow (sat=C42 B2a counter=6)
+7 12:55:30.0  478530 udbias : obs outage counter overflow (sat=C30 B1C counter=6)
+7 12:55:30.0  478530 udbias : obs outage counter overflow (sat=C30 B2a counter=6)
+4 12:56:00.0  478560 C32 GF: slip detected gf_new=        0.030, gf_old=        7.361, diff_abs=        7.331, thres=        0.050, el= 8.1
+4 13:32:00.0  480720 C44 GF: slip detected gf_new=        8.408, gf_old=       40.109, diff_abs=       31.701, thres=        0.050, el= 7.2
+7 13:40:00.0  481200 udbias : obs outage counter overflow (sat=C44 B1C counter=6)
+4 13:54:00.0  482040 C44 GF: slip detected gf_new=       13.762, gf_old=        8.395, diff_abs=        5.367, thres=        0.050, el=15.2
+7 14:12:00.0  483120 udbias : obs outage counter overflow (sat=C33 B1C counter=6)
+7 14:19:30.0  483570 udbias : obs outage counter overflow (sat=C33 B2a counter=6)
+7 14:31:00.0  484260 udbias : obs outage counter overflow (sat=C29 B1C counter=6)
+7 14:32:30.0  484350 udbias : obs outage counter overflow (sat=C29 B2a counter=6)
+4 14:37:00.0  484620 C23 GF: slip detected gf_new=       -2.917, gf_old=        5.288, diff_abs=        8.205, thres=        0.050, el=12.5
+7 14:40:30.0  484830 udbias : obs outage counter overflow (sat=C26 B1C counter=6)
+7 14:40:30.0  484830 udbias : obs outage counter overflow (sat=C26 B2a counter=6)
+4 14:41:30.0  484890 C20 GF: slip detected gf_new=        2.794, gf_old=       -1.579, diff_abs=        4.373, thres=        0.050, el= 7.2
+4 14:53:30.0  485610 C34 GF: slip detected gf_new=       43.876, gf_old=        2.682, diff_abs=       41.194, thres=        0.050, el= 7.0
+7 15:00:00.0  486000 udbias : obs outage counter overflow (sat=C20 B1C counter=6)
+7 15:00:00.0  486000 udbias : obs outage counter overflow (sat=C20 B2a counter=6)
+7 15:37:00.0  488220 udbias : obs outage counter overflow (sat=C38 B2a counter=6)
+7 15:39:00.0  488340 udbias : obs outage counter overflow (sat=C41 B1C counter=6)
+7 15:40:30.0  488430 udbias : obs outage counter overflow (sat=C41 B2a counter=6)
+4 15:41:00.0  488460 C38 GF: slip detected gf_new=       11.500, gf_old=       12.293, diff_abs=        0.793, thres=        0.050, el=11.9
+4 15:47:00.0  488820 C20 GF: slip detected gf_new=      -19.673, gf_old=        2.780, diff_abs=       22.454, thres=        0.050, el=23.7
+7 15:54:00.0  489240 udbias : obs outage counter overflow (sat=C40 B2a counter=6)
+7 15:57:00.0  489420 udbias : obs outage counter overflow (sat=C40 B1C counter=6)
+7 16:09:00.0  490140 udbias : obs outage counter overflow (sat=C40 B2a counter=6)
+7 16:13:30.0  490410 udbias : obs outage counter overflow (sat=C35 B1C counter=6)
+7 16:13:30.0  490410 udbias : obs outage counter overflow (sat=C35 B2a counter=6)
+4 16:14:00.0  490440 C19 GF: slip detected gf_new=        4.801, gf_old=        1.856, diff_abs=        2.945, thres=        0.050, el= 7.5
+7 16:14:30.0  490470 udbias : obs outage counter overflow (sat=C40 B2a counter=6)
+4 16:19:00.0  490740 C43 GF: slip detected gf_new=        1.539, gf_old=        4.464, diff_abs=        2.925, thres=        0.050, el= 7.1
+7 16:25:30.0  491130 udbias : obs outage counter overflow (sat=C24 B1C counter=6)
+7 16:25:30.0  491130 udbias : obs outage counter overflow (sat=C24 B2a counter=6)
+4 16:26:00.0  491160 C24 GF: slip detected gf_new=        3.518, gf_old=        2.889, diff_abs=        0.629, thres=        0.050, el= 8.0
+7 16:30:30.0  491430 udbias : obs outage counter overflow (sat=C24 B1C counter=6)
+7 16:30:30.0  491430 udbias : obs outage counter overflow (sat=C24 B2a counter=6)
+4 16:31:30.0  491490 C37 GF: slip detected gf_new=       -0.586, gf_old=        6.155, diff_abs=        6.741, thres=        0.050, el=10.6
+7 16:48:30.0  492510 udbias : obs outage counter overflow (sat=C32 B1C counter=6)
+7 16:52:00.0  492720 udbias : obs outage counter overflow (sat=C32 B2a counter=6)
+4 17:42:30.0  495750 C22 GF: slip detected gf_new=       -2.617, gf_old=       -0.864, diff_abs=        1.753, thres=        0.050, el= 8.4
+7 18:00:00.0  496800 udbias : obs outage counter overflow (sat=C20 B1C counter=6)
+4 18:03:00.0  496980 C28 GF: slip detected gf_new=        3.844, gf_old=        1.331, diff_abs=        2.513, thres=        0.050, el= 7.0
+7 18:03:30.0  497010 udbias : obs outage counter overflow (sat=C28 B1C counter=914)
+7 18:03:30.0  497010 udbias : obs outage counter overflow (sat=C20 B2a counter=6)
+7 18:03:30.0  497010 udbias : obs outage counter overflow (sat=C28 B2a counter=914)
+7 18:06:30.0  497190 udbias : obs outage counter overflow (sat=C44 B1C counter=6)
+7 18:06:30.0  497190 udbias : obs outage counter overflow (sat=C44 B2a counter=6)
+7 18:28:00.0  498480 udbias : obs outage counter overflow (sat=C46 B2a counter=1163)
+4 18:28:30.0  498510 C46 GF: slip detected gf_new=        7.591, gf_old=        4.124, diff_abs=        3.467, thres=        0.050, el= 7.4
+7 18:34:30.0  498870 udbias : obs outage counter overflow (sat=C25 B1C counter=6)
+7 18:34:30.0  498870 udbias : obs outage counter overflow (sat=C25 B2a counter=6)
+4 18:58:30.0  500310 C21 GF: slip detected gf_new=       -6.341, gf_old=        4.323, diff_abs=       10.663, thres=        0.050, el= 9.4
+7 19:13:30.0  501210 udbias : obs outage counter overflow (sat=C19 B1C counter=6)
+7 19:13:30.0  501210 udbias : obs outage counter overflow (sat=C19 B2a counter=6)
+4 19:58:00.0  503880 C42 GF: slip detected gf_new=        1.591, gf_old=        0.961, diff_abs=        0.630, thres=        0.050, el= 7.1
+4 19:59:00.0  503940 C34 GF: slip detected gf_new=       49.229, gf_old=       43.913, diff_abs=        5.316, thres=        0.050, el= 8.7
+4 20:05:30.0  504330 C27 GF: slip detected gf_new=       -3.238, gf_old=       28.235, diff_abs=       31.472, thres=        0.050, el=11.8
+7 20:06:00.0  504360 udbias : obs outage counter overflow (sat=C34 B2a counter=6)
+7 20:06:30.0  504390 udbias : obs outage counter overflow (sat=C34 B1C counter=6)
+7 20:16:30.0  504990 udbias : obs outage counter overflow (sat=C23 B1C counter=6)
+7 20:16:30.0  504990 udbias : obs outage counter overflow (sat=C23 B2a counter=6)
+4 20:23:30.0  505410 C36 GF: slip detected gf_new=       -1.502, gf_old=        7.887, diff_abs=        9.389, thres=        0.050, el= 8.9
+7 20:32:30.0  505950 udbias : obs outage counter overflow (sat=C22 B1C counter=6)
+7 20:32:30.0  505950 udbias : obs outage counter overflow (sat=C22 B2a counter=6)
+4 21:12:30.0  508350 C33 GF: slip detected gf_new=       25.311, gf_old=       35.311, diff_abs=       10.000, thres=        0.050, el= 8.5
+7 21:49:30.0  510570 udbias : obs outage counter overflow (sat=C37 B1C counter=6)
+7 21:49:30.0  510570 udbias : obs outage counter overflow (sat=C37 B2a counter=6)
+7 21:54:30.0  510870 udbias : obs outage counter overflow (sat=C30 B1C counter=6)
+4 21:59:00.0  511140 C30 GF: slip detected gf_new=        0.589, gf_old=        1.911, diff_abs=        1.322, thres=        0.050, el=10.8
+7 22:01:00.0  511260 udbias : obs outage counter overflow (sat=C43 B1C counter=6)
+7 22:01:00.0  511260 udbias : obs outage counter overflow (sat=C43 B2a counter=6)
+7 22:03:00.0  511380 udbias : obs outage counter overflow (sat=C21 B1C counter=6)
+7 22:03:00.0  511380 udbias : obs outage counter overflow (sat=C21 B2a counter=6)
+4 22:06:30.0  511590 C45 GF: slip detected gf_new=        6.414, gf_old=        3.955, diff_abs=        2.459, thres=        0.050, el= 7.1
+4 22:07:30.0  511650 C45 GF: slip detected gf_new=        6.632, gf_old=        6.407, diff_abs=        0.225, thres=        0.050, el= 7.4
+4 22:08:00.0  511680 C45 GF: slip detected gf_new=        6.810, gf_old=        6.632, diff_abs=        0.178, thres=        0.050, el= 7.6
+4 22:08:30.0  511710 C45 GF: slip detected gf_new=        6.697, gf_old=        6.810, diff_abs=        0.113, thres=        0.050, el= 7.7
+4 22:10:00.0  511800 C45 GF: slip detected gf_new=        6.622, gf_old=        6.698, diff_abs=        0.076, thres=        0.050, el= 8.2
+4 22:27:30.0  512850 C41 GF: slip detected gf_new=       19.040, gf_old=        6.736, diff_abs=       12.304, thres=        0.050, el= 8.1
+4 22:33:00.0  513180 C45 GF: slip detected gf_new=        6.668, gf_old=        6.612, diff_abs=        0.055, thres=        0.050, el=15.2
+7 23:12:30.0  515550 udbias : obs outage counter overflow (sat=C46 B1C counter=6)
+4 23:16:00.0  515760 C39 GF: slip detected gf_new=       29.175, gf_old=       -0.700, diff_abs=       29.874, thres=        0.050, el= 7.1
+7 23:18:30.0  515910 udbias : obs outage counter overflow (sat=C46 B2a counter=6)
+7 23:35:30.0  516930 udbias : obs outage counter overflow (sat=C42 B2a counter=6)
+7 23:42:00.0  517320 udbias : obs outage counter overflow (sat=C42 B1C counter=6)
+7 23:50:00.0  517800 udbias : obs outage counter overflow (sat=C38 B2a counter=6)
+4 23:53:00.0  517980 C32 GF: slip detected gf_new=        5.645, gf_old=        0.004, diff_abs=        5.641, thres=        0.050, el= 7.1
+7 23:53:30.0  518010 udbias : obs outage counter overflow (sat=C38 B1C counter=6)

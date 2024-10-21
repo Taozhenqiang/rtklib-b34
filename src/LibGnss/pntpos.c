@@ -76,7 +76,7 @@ static double varerr(const prcopt_t *opt, const ssat_t *ssat, const obsd_t *obs,
     return SQR(fact)*varr;
 }
 /* get group delay parameter (m) ---------------------------------------------*/
-static double gettgd(int sat, const nav_t *nav, int type)
+extern double gettgd(int sat, const nav_t *nav, int type)
 {
     int i,sys=satsys(sat,NULL);
     
@@ -111,8 +111,8 @@ static int snrmask(const obsd_t *obs, const double *azel, const prcopt_t *opt)
 static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
                      double *var)
 {
-    double P1,P2,gamma,b1,b2;
-    int sat,sys,f2,bias_ix[2],flag,fr2[2];
+    double P1,P2,gamma,b1=0.0,freq1=0.0,freq2=0.0;
+    int sat,sys,f2,bias_ix[2],flag=0,fr2[2];
 
     sat=obs->sat;
     sys=satsys(sat,NULL);
@@ -126,7 +126,7 @@ static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
     if (P1==0.0||(opt->ionoopt==IONOOPT_IFLC&&P2==0.0)) return 0.0;
     bias_ix[0]=code2bias_ix(sys,obs->code[fr2[0]]);  /* L1 code bias */
     bias_ix[1]=code2bias_ix(sys,obs->code[fr2[1]]);
-    if (opt->sateph==EPHOPT_BRDC&&sys==SYS_CMP&&nav->obias_flag==2) { /* obias_flag 1:DCB product, 2:OSB product */
+    if (opt->sateph==EPHOPT_BRDC&&sys==SYS_CMP) { /* obias_flag 1:DCB product, 2:OSB product */
         flag=0;
     }
     else if (nav->obias_flag>0) {
@@ -135,10 +135,18 @@ static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
         flag=1;
     }
 
+    /* P1-C1,P2-C2 DCB correction */
+    if (sys==SYS_GPS||sys==SYS_GLO) {
+        if (obs->code[fr2[0]]==CODE_L1C) P1+=nav->cbias[sat-1][0]; /* C1->P1 */
+        if (obs->code[fr2[1]]==CODE_L2C) P2+=nav->cbias[sat-1][1]; /* C2->P2 */
+    }
+
     if (opt->ionoopt==IONOOPT_IFLC) { /* dual-frequency */
         
         if (sys==SYS_GPS||sys==SYS_QZS) { /* L1-L2 or L1-L5 */
-            gamma=f2==1?SQR(FREQL1/FREQL2):SQR(FREQL1/FREQL5);
+            freq1=code2freq(SYS_GPS,obs->code[fr2[0]],0);
+            freq2=code2freq(SYS_GPS,obs->code[fr2[1]],0);
+            gamma=SQR(freq1/freq2);
             return (P2-gamma*P1)/(1.0-gamma);
         }
         else if (sys==SYS_GLO) { /* G1-G2 or G1-G3 */
@@ -146,22 +154,23 @@ static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
             return (P2-gamma*P1)/(1.0-gamma);
         }
         else if (sys==SYS_GAL) { /* E1-E5b, E1-E5a */
-            gamma=f2==1?SQR(FREQL1/FREQE5b):SQR(FREQL1/FREQL5);
-            if (!flag&&f2==1&&getseleph(SYS_GAL)) { /* F/NAV */
-                P2-=gettgd(sat,nav,0)-gettgd(sat,nav,1); /* BGD_E5aE5b */
-            }
+            freq1=code2freq(SYS_GPS,obs->code[fr2[0]],0);
+            freq2=code2freq(SYS_GPS,obs->code[fr2[1]],0);
+            gamma=SQR(freq1/freq2);
+            /* BGD_E5aE5b */
+            /* gamma=f2==1?SQR(FREQL1/FREQE5b):SQR(FREQL1/FREQL5);
+            if (!flag&&f2==1&&getseleph(SYS_GAL)) { 
+                P2-=gettgd(sat,nav,0)-gettgd(sat,nav,1); 
+            } */
             return (P2-gamma*P1)/(1.0-gamma);
         }
         else if (sys==SYS_CMP) { /* B1-B2 */
-            gamma=SQR(((obs->code[fr2[0]]==CODE_L2I)?FREQ1_CMP:FREQL1)/FREQ2_CMP);
-            if      (!flag&&obs->code[fr2[0]]==CODE_L2I) b1=gettgd(sat,nav,0); /* TGD_B1I */
-            else if (!flag&&obs->code[fr2[0]]==CODE_L1P) b1=gettgd(sat,nav,2); /* TGD_B1Cp */
-            else if (!flag) b1=gettgd(sat,nav,2)+gettgd(sat,nav,4); /* TGD_B1Cp+ISC_B1Cd */
-            else b1=0.0;
-            if (!flag) b2=gettgd(sat,nav,1); /* TGD_B2I/B2bI (m) */
-            else b2=0.0;
-            /* b1=0;b2=0; */
-            return ((P2-gamma*P1)-(b2-gamma*b1))/(1.0-gamma);
+            freq1=code2freq(SYS_CMP,obs->code[fr2[0]],0);
+            freq2=code2freq(SYS_CMP,obs->code[fr2[1]],0);
+            gamma=SQR(freq1/freq2);
+            if      (!flag&&obs->code[fr2[0]]==CODE_L2I) {P1-=gettgd(sat,nav,0);} /* TGD_B1I */
+            else if (!flag&&obs->code[fr2[1]]==CODE_L7I) {P2-=gettgd(sat,nav,1);} /* TGD_B2I */
+            return (P2-gamma*P1)/(1.0-gamma);
         }
         else if (sys==SYS_IRN) { /* L5-S */
             gamma=SQR(FREQL5/FREQs);
@@ -172,37 +181,27 @@ static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
         *var=SQR(ERR_CBIAS);
         
         if (sys==SYS_GPS||sys==SYS_QZS) { /* L1 */
-            if (!flag) b1=gettgd(sat,nav,0); /* TGD (m) */
-            else b1=0.0;
-            return P1-b1;
+            return P1;
         }
         else if (sys==SYS_GLO) { /* G1 */
             gamma=SQR(FREQ1_GLO/FREQ2_GLO);
-            if (!flag) b1=gettgd(sat,nav,0); /* -dtaun (m) */
-            else b1=0.0;
+            b1=gettgd(sat,nav,0); /* -dtaun (m) */
             return P1-b1/(gamma-1.0);
         }
         else if (sys==SYS_GAL) { /* E1 */
-            if (getseleph(SYS_GAL)&&!flag) b1=gettgd(sat,nav,0); /* BGD_E1E5a */
-            else if (!flag)                b1=gettgd(sat,nav,1); /* BGD_E1E5b */
-            else b1=0.0;
-            return P1-b1;
+            return P1;
         }
-        else if (sys==SYS_CMP) { /* B1I/B1Cp/B1Cd */
-            if      (!flag&&obs->code[fr2[0]]==CODE_L2I) b1=gettgd(sat,nav,0); /* TGD_B1I */
-            else if (!flag&&obs->code[fr2[0]]==CODE_L1P) b1=gettgd(sat,nav,2); /* TGD_B1Cp */
-            else if (!flag) b1=gettgd(sat,nav,2)+gettgd(sat,nav,4); /* TGD_B1Cp+ISC_B1Cd */
-            else b1=0;
-            return P1-b1;
+        else if (sys==SYS_CMP) { /* B1I/B2I */
+            if      (!flag&&obs->code[fr2[0]]==CODE_L2I) {P1-=gettgd(sat,nav,0);} /* TGD_B1I */
+            else if (!flag&&obs->code[fr2[1]]==CODE_L7I) {P2-=gettgd(sat,nav,1);} /* TGD_B2I */
+            return P1;
         }
         else if (sys==SYS_IRN) { /* L5 */
             gamma=SQR(FREQs/FREQL5);
-            if (!flag) b1=gettgd(sat,nav,0); /* TGD (m) */
-            else b1=0;
+            b1=gettgd(sat,nav,0); /* TGD (m) */
             return P1-gamma*b1;
         }
     }
-    return P1;
 }
 /* ionospheric correction ------------------------------------------------------
 * compute ionospheric correction
@@ -221,7 +220,7 @@ extern int ionocorr(gtime_t time, const nav_t *nav, int sat, const double *pos,
 {
     int err=0;
 
-    trace(4,"ionocorr: time=%s opt=%d sat=%2d pos=%.3f %.3f azel=%.3f %.3f\n",
+    trace(9,"ionocorr: time=%s opt=%d sat=%2d pos=%.3f %.3f azel=%.3f %.3f\n",
           time_str(time,3),ionoopt,sat,pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,
           azel[1]*R2D);
     
@@ -265,7 +264,7 @@ extern int ionocorr(gtime_t time, const nav_t *nav, int sat, const double *pos,
 extern int tropcorr(gtime_t time, const nav_t *nav, const double *pos,
                     const double *azel, int tropopt, double *trp, double *var)
 {
-    trace(4,"tropcorr: time=%s opt=%d pos=%.3f %.3f azel=%.3f %.3f\n",
+    trace(9,"tropcorr: time=%s opt=%d pos=%.3f %.3f azel=%.3f %.3f\n",
           time_str(time,3),tropopt,pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,
           azel[1]*R2D);
     
@@ -293,14 +292,14 @@ static int rescode(int iter, const obsd_t *obs, int n, const double *rs,
                    double *azel, int *vsat, double *resp, int *ns)
 {
     gtime_t time;
-    double r,freq,dion=0.0,dtrp=0.0,vmeas,vion=0.0,vtrp=0.0,rr[3],pos[3],dtr=0.0,e[3],P;
+    double r,freq,dion=0.0,dtrp=0.0,vmeas,vion=0.0,vtrp=0.0,rr[3],pos[3],e[3],P,dtr=0.0;
     int i,j,nv=0,sat,sys,mask[NX-3]={0},f=0;
 
     for (i=0;i<3;i++) rr[i]=x[i];
-    for (i=3;i<NX;i++) dtr+=x[i];
+    dtr=x[3];
     
     ecef2pos(rr,pos);
-    trace(3,"rescode: rr=%.3f %.3f %.3f\n",rr[0], rr[1], rr[2]);
+    trace(8,"rescode: rr=%.3f %.3f %.3f\n",rr[0], rr[1], rr[2]);
     
     for (i=*ns=0;i<n&&i<MAXOBS;i++) {
         vsat[i]=0; azel[i*2]=azel[1+i*2]=resp[i]=0.0;
@@ -345,31 +344,24 @@ static int rescode(int iter, const obsd_t *obs, int n, const double *rs,
         
         /* pseudorange residual */
         v[nv]=P-(r+dtr-CLIGHT*dts[i*2]+dion+dtrp);
-        trace(4,"sat=%d: v=%.3f P=%.3f r=%.3f dtr=%.6f dts=%.6f dion=%.3f dtrp=%.3f\n",
-            sat,v[nv],P,r,dtr,dts[i*2],dion,dtrp);
+        trace(8,"sat=%d: v=%.3f P=%.3f r=%.3f dts=%.6f dion=%.3f dtrp=%.3f\n",
+            sat,v[nv],P,r,dts[i*2],dion,dtrp);
         
         /* design matrix */
-        if (opt->navsys&SYS_GPS) {
-            for (j=0;j<NX;j++) {
-                H[j+nv*NX]=j<3?-e[j]:(j==3?1.0:0.0);
-            }            
-        }
-        else {
-            for (j=0;j<NX;j++) {
-                H[j+nv*NX]=j<3?-e[j]:(j==3?0.0:0.0);
-            }                
-        }
+        for (j=0;j<NX;j++) {
+            H[j+nv*NX]=j<3?-e[j]:(j==3?1.0:0.0);
+        }                
 
         /* time system offset and receiver bias correction */
-        if      (sys==SYS_GLO) { H[4+nv*NX]=1.0; mask[1]=1;}
-        else if (sys==SYS_GAL) { H[5+nv*NX]=1.0; mask[2]=1;}
-        else if (sys==SYS_CMP) { H[6+nv*NX]=1.0; mask[3]=1;}
-        else if (sys==SYS_IRN) { H[7+nv*NX]=1.0; mask[4]=1;}
+        if      (sys==SYS_GLO) {v[nv]-=x[4]; H[4+nv*NX]=1.0; mask[1]=1;}
+        else if (sys==SYS_GAL) {v[nv]-=x[5]; H[5+nv*NX]=1.0; mask[2]=1;}
+        else if (sys==SYS_CMP) {v[nv]-=x[6]; H[6+nv*NX]=1.0; mask[3]=1;}
+        else if (sys==SYS_IRN) {v[nv]-=x[7]; H[7+nv*NX]=1.0; mask[4]=1;}
 #ifdef QZSDT
-        else if (sys==SYS_QZS) { H[8+nv*NX]=1.0; mask[5]=1;}
+        else if (sys==SYS_QZS) {v[nv]-=x[8]; H[8+nv*NX]=1.0; mask[5]=1;}
 #endif
-        else if (sys==SYS_GPS) { H[3+nv*NX]=1.0; mask[0]=1;}
-
+        else mask[0]=1;
+        
         vsat[i]=1; resp[i]=v[nv]; (*ns)++;
         
         /* variance of pseudorange error */
@@ -378,7 +370,7 @@ static int rescode(int iter, const obsd_t *obs, int n, const double *rs,
             var[nv++]+=varerr(opt,&ssat[i],&obs[i],azel[1+i*2],sys);
         else
             var[nv++]+=varerr(opt,NULL,&obs[i],azel[1+i*2],sys);
-        trace(4,"sat=%2d azel=%5.1f %4.1f res=%7.3f sig=%5.3f\n",obs[i].sat,
+        trace(8,"sat=%2d azel=%5.1f %4.1f res=%7.3f sig=%5.3f\n",obs[i].sat,
               azel[i*2]*R2D,azel[1+i*2]*R2D,resp[i],sqrt(var[nv-1]));
     }
     /* constraint to avoid rank-deficient */
@@ -429,7 +421,7 @@ static int estpos(const obsd_t *obs, int n, const double *rs, const double *dts,
     double x[NX]={0},dx[NX],Q[NX*NX],*v,*H,*var,sig;
     int i,j,k,info,stat,nv,ns;
     
-    trace(3,"estpos  : n=%d\n",n);
+    trace(8,"estpos  : n=%d\n",n);
     
     v=mat(n+5,1); H=mat(NX,n+5); var=mat(n+5,1);
     
@@ -438,22 +430,28 @@ static int estpos(const obsd_t *obs, int n, const double *rs, const double *dts,
     for (i=0;i<MAXITR;i++) {
 
         /* pseudorange residuals (m) */
-        nv=rescode(i,obs,n,rs,dts,vare,svh,nav,x,opt,ssat,v,H,var,azel,vsat,resp,
-                   &ns);
+        nv=rescode(i,obs,n,rs,dts,vare,svh,nav,x,opt,ssat,v,H,var,azel,vsat,resp,&ns);
         
         if (nv<NX) {
             sprintf(msg,"lack of valid sats ns=%d",nv);
+            trace(7,"spp lack of valid sats ns=%d",nv);
             break;
         }
+        
+        /* trace(12,"H=\n"); tracemat(12,H,NX,nv,9,4); */
+        /* trace(12,"v=\n"); tracemat(12,v,nv,1,9,4); */
+
         /* weight by variance (lsq uses sqrt of weight */
         for (j=0;j<nv;j++) {
             sig=sqrt(var[j]);
             v[j]/=sig;
             for (k=0;k<NX;k++) H[k+j*NX]/=sig;
         }
+
         /* least square estimation */
         if ((info=lsq(H,v,NX,nv,dx,Q))) {
             sprintf(msg,"lsq error info=%d",info);
+            trace(7,"spp lsq error info=%d",info);
             break;
         }
         for (j=0;j<NX;j++) {
@@ -486,7 +484,10 @@ static int estpos(const obsd_t *obs, int n, const double *rs, const double *dts,
             return stat;
         }
     }
-    if (i>=MAXITR) sprintf(msg,"iteration divergent i=%d",i);
+    if (i>=MAXITR) {
+        sprintf(msg,"iteration divergent i=%d",i);
+        trace(7,"iteration divergent i=%d",i);
+    }
     
     free(v); free(H); free(var);
     return 0;
@@ -688,8 +689,10 @@ extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
     
     if (ssat) {
         for (i=0;i<MAXSAT;i++) {
+            satno2id(i+1,ssat[i].id);
             sys=satsys(i+1,NULL);
             fr=sys2freid(sys,0,opt);
+            ssat[i].sys=sys;
             ssat[i].snr_rover[fr]=0;
             ssat[i].snr_base[fr]=0;
         }
@@ -700,6 +703,7 @@ extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
     }
     
     if (opt_.mode!=PMODE_SINGLE) { /* for precise positioning */
+        opt_.sateph=EPHOPT_BRDC;
         opt_.ionoopt=IONOOPT_BRDC;
         opt_.tropopt=TROPOPT_SAAS;
     }

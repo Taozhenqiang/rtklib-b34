@@ -108,13 +108,13 @@ extern "C"
 #define FREQ2a_GLO 1.248060E9 /* GLONASS G2a frequency (Hz) */
 #define FREQ1_CMP 1.561098E9  /* BDS B1I     frequency (Hz) */
 #define FREQ2_CMP 1.20714E9   /* BDS B2I/B2b frequency (Hz) */
-#define FREQ3_CMP 1.26852E9   /* BDS B3      frequency (Hz) */
+#define FREQ3_CMP 1.26852E9   /* BDS B3I     frequency (Hz) */
 
 #define EFACT_GPS 1.0 /* error factor: GPS */
 #define EFACT_GLO 1.5 /* error factor: GLONASS */
 #define EFACT_GAL 1.0 /* error factor: Galileo */
 #define EFACT_QZS 1.0 /* error factor: QZSS */
-#define EFACT_CMP 1.0 /* error factor: BeiDou */
+#define EFACT_CMP 5.0 /* error factor: BeiDou */
 #define EFACT_IRN 1.5 /* error factor: IRNSS */
 #define EFACT_SBS 3.0 /* error factor: SBAS */
 
@@ -129,7 +129,7 @@ extern "C"
 #define SYS_LEO 0x80  /* navigation system: LEO */
 #define SYS_ALL 0xFF  /* navigation system: all */
 
-/* System codes used in rnxopt_t mask, tobs, shift, and nobs. */
+/* system codes used in rnxopt_t mask, tobs, shift, and nobs. */
 #define RNX_SYS_GPS 0 /* Navigation system: GPS */
 #define RNX_SYS_GLO 1 /* Navigation system: GLONASS */
 #define RNX_SYS_GAL 2 /* Navigation system: Galileo */
@@ -634,8 +634,8 @@ extern "C"
         char type[MAXANT];     /* antenna type */
         char code[MAXANT];     /* serial number or satellite code */
         gtime_t ts, te;        /* valid time start and end */
-        double off[NFREQ][3];  /* phase center offset e/n/u or x/y/z (m) */
-        double var[NSYS*NFREQ][41*73]; /* phase center variation (m) */
+        double off[NSYS][NFREQ][3];  /* phase center offset e/n/u or x/y/z (m) */
+        double var[NSYS][NFREQ][41*73]; /* phase center variation (m) */
                                /* 73=360/5+1,41=20/0.5+1 */
         double dazi;           /* increment of the azimuth*/
         double zen1,zen2,dzen; /* receiver antenna: Definition of the grid in zenith angle.*/
@@ -913,7 +913,7 @@ extern "C"
         double ion_cmp[8];                                          /* BeiDou iono model parameters {a0,a1,a2,a3,b0,b1,b2,b3} */
         double ion_irn[8];                                          /* IRNSS iono model parameters {a0,a1,a2,a3,b0,b1,b2,b3} */
         int glo_fcn[32];                                            /* GLONASS FCN + 8 */
-        double cbias[MAXSAT][MAX_CODE_BIAS_FREQS][MAX_CODE_BIASES]; /* satellite DCB [0:P1-C1,1:P2-C2][code] (m) */
+        double cbias[MAXSAT][MAX_CODE_BIAS_FREQS];                  /* satellite DCB [0:P1-C1,1:P2-C2][code] (m) */
         double obias[MAXSTA][MAXCODE];                              /* satellite DCB  (m) GPS/GLONASS/Galileo/Beidou/QZSS*/
         double rbias[MAXRCV][MAX_CODE_BIAS_FREQS][MAX_CODE_BIASES]; /* receiver DCB (0:P1-P2,1:P1-C1,2:P2-C2) (m) */
         spcv_t spcvs[MAXSAT];                                         /* satellite antenna pcv */
@@ -1079,13 +1079,14 @@ extern "C"
                                  GPS: 0-L1;1-L2;2-L5
                                  GLONASS: 0-G1/G1a;1-G2/G2a;2-G3
                                  Galileo: 0-E1;1-E5b;2-E5a;3-E6;4-E5a+E5b;
-                                 QZSS: 0-L1;1-L2;2-L5;3-LEX;
-                                 BeiDou: 0-B1I;1-B2I;2-B3I;3-B1C;4-B2a,5-B2b,6-B2ab*/ 
+                                 BeiDou: 0-B1I;1-B2I;2-B3I;3-B1C;4-B2a,5-B2b,6-B2ab;
+                                 QZSS: 0-L1;1-L2;2-L5;3-LEX;*/ 
         int bdsflag[2];          /* exclude flag of BSD2 and BDS3 [0] BDS2 flag,[1] BSD3 flag*/      
         int navsys;              /* navigation system */
         double elmin;            /* elevation mask angle (rad) */
         snrmask_t snrmask;       /* SNR mask */
         int sateph;              /* satellite ephemeris/clock (EPHOPT_???) */
+        int artype;              /* LAMBDA algrithm type (1:all AR  2:part AR)*/
         int modear;              /* AR mode (0:off,1:continuous,2:instantaneous,3:fix and hold,4:ppp-ar) */
         int glomodear;           /* GLONASS AR mode (0:off,1:on,2:auto cal,3:ext cal) */
         int gpsmodear;           /* GPS AR mode, debug/learning only (0:off,1:on) */
@@ -1147,6 +1148,15 @@ extern "C"
     } prcopt_t;
 
     typedef struct
+    {
+        gtime_t tNow;
+        double ctNow[6];
+        int week;
+        double sow;             /* second of week */
+        char chTime[MAXSTRPATH];
+    } Debug_Glo_t;
+
+    typedef struct
     {                       /* solution options type */
         int posf;           /* solution format (SOLF_???) */
         int times;          /* time system (TIMES_???) */
@@ -1171,8 +1181,7 @@ extern "C"
 
     typedef struct
     {                             /* file options type */
-        char satantp[MAXSTRPATH]; /* satellite antenna parameters file */
-        char rcvantp[MAXSTRPATH]; /* receiver antenna parameters file */
+        char antp[MAXSTRPATH];    /* receiver and satellite antenna parameters file */
         char stapos[MAXSTRPATH];  /* station positions file */
         char geoid[MAXSTRPATH];   /* external geoid data file */
         char iono[MAXSTRPATH];    /* ionosphere data file */
@@ -1233,6 +1242,7 @@ extern "C"
     typedef struct
     {                              /* satellite status type */
         uint8_t sys;               /* navigation system */
+        char id[4];
         uint8_t vs;                /* valid satellite flag single */
         double azel[2];            /* azimuth/elevation angles {az,el} (rad) */
         double resp[NFREQ];        /* residuals of pseudorange (m) */
@@ -1248,8 +1258,8 @@ extern "C"
         uint32_t outc[NFREQ];      /* obs outage counter of phase */
         uint32_t slipc[NFREQ];     /* cycle-slip counter */
         uint32_t rejc[NFREQ];      /* reject counter */
-        double gf[NFREQ - 1];      /* geometry-free phase (m) */
-        double mw[NFREQ - 1];      /* MW-LC (m) */
+        double gf[NFREQ-1];      /* geometry-free phase (m) */
+        double mw[NFREQ-1];      /* MW-LC (m) */
         double phw;                /* phase windup (cycle) */
         gtime_t pt[2][NFREQ];      /* previous carrier-phase time */
         double ph[2][NFREQ];       /* previous carrier-phase observable (cycle) */
@@ -1454,6 +1464,7 @@ extern "C"
     EXPORT extern const double chisqr[];             /* chi-sqr(n) table (alpha=0.001) */
     EXPORT extern const prcopt_t prcopt_default;     /* default positioning options */
     EXPORT extern const solopt_t solopt_default;     /* default solution output options */
+    EXPORT extern Debug_Glo_t Debug_Glo;
     EXPORT extern const sbsigpband_t igpband1[9][8]; /* SBAS IGP band 0-8 */
     EXPORT extern const sbsigpband_t igpband2[2][5]; /* SBAS IGP band 9-10 */
     EXPORT extern const char *formatstrs[];          /* stream format strings */
@@ -1465,6 +1476,7 @@ extern "C"
     /* satellites, systems, codes functions --------------------------------------*/
     EXPORT int satno(int sys, int prn);
     EXPORT int sys2freid(int sys, int ix, const prcopt_t *opt);
+    EXPORT void sys2frech(int sys, int ix, char *id);
     EXPORT int satsys(int sat, int *prn);
     EXPORT int satid2no(const char *id);
     EXPORT void satno2id(int sat, char *id);
@@ -1575,82 +1587,82 @@ extern "C"
 
 /* debug trace functions -----------------------------------------------------*/
 #ifdef TRACE
-#define trace(level, ...)                   \
+/* #define trace(level, ...)                   \
     do                                      \
     {                                       \
         if (level <= gettracelevel())       \
-            trace_impl(level, __VA_ARGS__); \
+            trace(level, __VA_ARGS__); \
     } while (0)
 #define tracet(level, ...)                   \
     do                                       \
     {                                        \
         if (level <= gettracelevel())        \
-            tracet_impl(level, __VA_ARGS__); \
+            tracet(level, __VA_ARGS__); \
     } while (0)
 #define tracemat(level, ...)                   \
     do                                         \
     {                                          \
         if (level <= gettracelevel())          \
-            tracemat_impl(level, __VA_ARGS__); \
+            tracemat(level, __VA_ARGS__); \
     } while (0)
 #define traceobs(level, ...)                   \
     do                                         \
     {                                          \
         if (level <= gettracelevel())          \
-            traceobs_impl(level, __VA_ARGS__); \
+            traceobs(level, __VA_ARGS__); \
     } while (0)
 #define tracenav(level, ...)                   \
     do                                         \
     {                                          \
         if (level <= gettracelevel())          \
-            tracenav_impl(level, __VA_ARGS__); \
+            tracenav(level, __VA_ARGS__); \
     } while (0)
 #define tracegnav(level, ...)                   \
     do                                          \
     {                                           \
         if (level <= gettracelevel())           \
-            tracegnav_impl(level, __VA_ARGS__); \
+            tracegnav(level, __VA_ARGS__); \
     } while (0)
 #define tracehnav(level, ...)                   \
     do                                          \
     {                                           \
         if (level <= gettracelevel())           \
-            tracehnav_impl(level, __VA_ARGS__); \
+            tracehnav(level, __VA_ARGS__); \
     } while (0)
 #define tracepeph(level, ...)                   \
     do                                          \
     {                                           \
         if (level <= gettracelevel())           \
-            tracepeph_impl(level, __VA_ARGS__); \
+            tracepeph(level, __VA_ARGS__); \
     } while (0)
 #define tracepclk(level, ...)                   \
     do                                          \
     {                                           \
         if (level <= gettracelevel())           \
-            tracepclk_impl(level, __VA_ARGS__); \
+            tracepclk(level, __VA_ARGS__); \
     } while (0)
 #define traceb(level, ...)                   \
     do                                       \
     {                                        \
         if (level <= gettracelevel())        \
-            traceb_impl(level, __VA_ARGS__); \
-    } while (0)
+            traceb(level, __VA_ARGS__); \
+    } while (0) */
 
     EXPORT void traceopen(const char *file);
     EXPORT void traceclose(void);
     EXPORT void tracelevel(int level);
     EXPORT int gettracelevel(void);
 
-    EXPORT void trace_impl(int level, const char *format, ...);
-    EXPORT void tracet_impl(int level, const char *format, ...);
-    EXPORT void tracemat_impl(int level, const double *A, int n, int m, int p, int q);
-    EXPORT void traceobs_impl(int level, const obsd_t *obs, int n);
-    EXPORT void tracenav_impl(int level, const nav_t *nav);
-    EXPORT void tracegnav_impl(int level, const nav_t *nav);
-    EXPORT void tracehnav_impl(int level, const nav_t *nav);
-    EXPORT void tracepeph_impl(int level, const nav_t *nav);
-    EXPORT void tracepclk_impl(int level, const nav_t *nav);
-    EXPORT void traceb_impl(int level, const uint8_t *p, int n);
+    EXPORT void trace(int level, const char *format, ...);
+    EXPORT void tracet(int level, const char *format, ...);
+    EXPORT void tracemat(int level, const double *A, int n, int m, int p, int q);
+    EXPORT void traceobs(int level, const obsd_t *obs, int n);
+    EXPORT void tracenav(int level, const nav_t *nav);
+    EXPORT void tracegnav(int level, const nav_t *nav);
+    EXPORT void tracehnav(int level, const nav_t *nav);
+    EXPORT void tracepeph(int level, const nav_t *nav);
+    EXPORT void tracepclk(int level, const nav_t *nav);
+    EXPORT void traceb(int level, const uint8_t *p, int n);
 
 #else
 
@@ -1705,10 +1717,9 @@ extern "C"
 
     /* antenna models ------------------------------------------------------------*/
     EXPORT int readpcv(const char *file, spcvs_t *pcvs, rpcvs_t *pcvr);
-    EXPORT spcv_t *searchspcv(int sat, const char *type, gtime_t time,
-                            const spcvs_t *pcvs);
+    EXPORT spcv_t *searchspcv(int sat, gtime_t time, const spcvs_t *pcvs);
     EXPORT rpcv_t *searchrpcv(const char *type, gtime_t time, const rpcvs_t *pcvs);                           
-    EXPORT void antmodel(const rpcv_t *rpcv, const double *del, const double *azel,
+    EXPORT void antmodel(int sys, const rpcv_t *rpcv, const double *del, const double *azel,
                          int opt, double *dant);
     EXPORT void antmodel_s(const spcv_t *spcv, double nadir, double *dant);
 
@@ -1780,8 +1791,10 @@ extern "C"
     EXPORT int getseleph(int sys);
     EXPORT void readsp3(const char *file, nav_t *nav, int opt);
     EXPORT int readsap(const char *file, gtime_t time, nav_t *nav);
-    EXPORT int readdcb(const char *file, nav_t *nav, const sta_t *sta);
+    EXPORT int readdcb(const prcopt_t *prcopt, const char *file, nav_t *nav, const sta_t *sta);
     EXPORT int code2bias_ix(const int sys, const int code);
+    EXPORT int tgdarrge(const prcopt_t *opt, nav_t *nav);
+    EXPORT double gettgd(int sat, const nav_t *nav, int type);
     /*EXPORT int  readfcb(const char *file, nav_t *nav);*/
     EXPORT void alm2pos(gtime_t time, const alm_t *alm, double *rs, double *dts);
 
